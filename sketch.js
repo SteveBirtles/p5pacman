@@ -1,10 +1,11 @@
 let MAP_WIDTH = 16;
 let MAP_HEIGHT = 14;
 
-const NORTH = 0b0001;
-const EAST = 0b0010;
-const SOUTH = 0b0100;
-const WEST = 0b1000;
+const NORTH = 0b00001;
+const EAST = 0b00010;
+const SOUTH = 0b00100;
+const WEST = 0b01000;
+const PILL = 0b10000;
 
 let map;
 
@@ -23,86 +24,76 @@ function preload() {
 function generateMap() {
 
   map = [];
-
   for (let i = 0; i < MAP_WIDTH; i++) {
     row = [];
     for (let j = 0; j < MAP_HEIGHT; j++) {
-      row.push({
-        value: 0b0000,
-        r: 0,
-        g: 0,
-        b: 0,
-        traversed: false
-      });
+      row.push(0);
     }
     map.push(row);
   }
 
-  for (let i = 0; i < floor(MAP_WIDTH / 2); i += 2) {
-
-    if (i < MAP_HEIGHT / 2) {
+  for (let i = 0; i < floor(MAP_WIDTH / 2) - 1; i += 2) {
+    if (i < MAP_HEIGHT / 2 - 1) {
       for (let j = i + 1; j < floor(MAP_WIDTH) - i - 1; j++) {
-        map[j][i] = { value: EAST | WEST, r: 255, g: 255, b: 255 };
-        map[j][MAP_HEIGHT - i - 1] = { value: EAST | WEST, r: 255, g: 255, b: 255 };
+        map[j][i] = EAST | WEST;
+        map[j][MAP_HEIGHT - i - 1] = EAST | WEST;
       }
+      map[i][i] = SOUTH | EAST;
+      map[i][MAP_HEIGHT - 1 - i] = NORTH | EAST;
+      map[MAP_WIDTH - 1 - i][i] = SOUTH | WEST;
+      map[MAP_WIDTH - 1 - i][MAP_HEIGHT - 1 - i] = NORTH | WEST;
     }
-
-    if (2 * i == (MAP_HEIGHT - 1)) {
-      map[i][i] = { value: EAST, r: 255, g: 255, b: 255 };
-      map[MAP_WIDTH - 1 - i][i] = { value: WEST, r: 255, g: 255, b: 255 };
-      break;
-    }
-
-    if (i < floor(MAP_HEIGHT / 2)) {
-      map[i][i] = { value: SOUTH | EAST, r: 255, g: 255, b: 255 };
-      map[i][MAP_HEIGHT - 1 - i] = { value: NORTH | EAST, r: 255, g: 255, b: 255 };
-      map[MAP_WIDTH - 1 - i][i] = { value: SOUTH | WEST, r: 255, g: 255, b: 255 };
-      map[MAP_WIDTH - 1 - i][MAP_HEIGHT - 1 - i] = { value: NORTH | WEST, r: 255, g: 255, b: 255 };
-    }
-
     for (let j = i + 1; j < MAP_HEIGHT - 1 - i; j++) {
-      map[i][j] = { value: NORTH | SOUTH, r: 255, g: 255, b: 255 };
-      map[MAP_WIDTH - 1 - i][j] = { value: NORTH | SOUTH, r: 255, g: 255, b: 255 };
+      map[i][j] = NORTH | SOUTH;
+      map[MAP_WIDTH - 1 - i][j] = NORTH | SOUTH;
     }
+  }
 
+  let centreI = 0;
+  let centreJ = 0;
+
+  
+
+  for (let i = 0; i < MAP_WIDTH; i++) {
+    for (let j = 0; j < MAP_HEIGHT; j++) {
+      if (map[i][j] != 0) continue;
+      map[i][j] = PILL;
+    }
   }
 
 }
 
-function traverse(x, y, reset) {
+function traverse(x, y, history = null) {
 
-  if (reset) {
-    for (let x = 0; x < MAP_WIDTH; x++) {
-      for (let y = 0; y < MAP_HEIGHT; y++) {
-        map[x][y].traversed = false;
-        if (map[x][y].value == 0) {
-          map[x][y].r = 0;
-          map[x][y].g = 0;
-          map[x][y].b = 0;
-        }
+  let final = history === null;
+
+  if (history == null) {
+    history = [];
+    for (let i = 0; i < MAP_WIDTH; i++) {
+      row = [];
+      for (let j = 0; j < MAP_HEIGHT; j++) {
+        row.push(false);
       }
+      history.push(row);
     }
   }
 
-  map[x][y].traversed = true;
-  map[x][y].r = 0;
-  map[x][y].g = 255;
-  map[x][y].b = 0;
+  history[x][y] = true;
 
-  if (x > 0 && map[x - 1][y].value == 0 && !map[x - 1][y].traversed) traverse(x - 1, y, false);
-  if (y > 0 && map[x][y - 1].value == 0 && !map[x][y - 1].traversed) traverse(x, y - 1, false);
-  if (x < MAP_WIDTH - 1 && map[x + 1][y].value == 0 && !map[x + 1][y].traversed) traverse(x + 1, y, false);
-  if (y < MAP_HEIGHT - 1 && map[x][y + 1].value == 0 && !map[x][y + 1].traversed) traverse(x, y + 1, false);
+  if (x > 0 && map[x - 1][y].value == 0 && !history[x - 1][y]) traverse(x - 1, y, false);
+  if (y > 0 && map[x][y - 1].value == 0 && !history[x][y - 1]) traverse(x, y - 1, false);
+  if (x < MAP_WIDTH - 1 && map[x + 1][y].value == 0 && !history[x + 1][y]) traverse(x + 1, y, false);
+  if (y < MAP_HEIGHT - 1 && map[x][y + 1].value == 0 && !history[x][y + 1]) traverse(x, y + 1, false);
 
-  if (reset) {
+  if (final) {
 
     let traversedCount = 0;
     let totalCount = 0;
     for (let x = 0; x < MAP_WIDTH; x++) {
       for (let y = 0; y < MAP_HEIGHT; y++) {
-        if (map[x][y].value == 0) {
+        if (map[x][y] == 0) {
           totalCount++;
-          if (map[x][y].traversed) traversedCount++;
+          if (history[x][y]) traversedCount++;
         }
       }
     }
@@ -126,15 +117,15 @@ function keyPressed() {
 
   if (keyCode === LEFT_ARROW) {
     MAP_WIDTH--;
+    if (MAP_WIDTH < 8) MAP_WIDTH = 8;
     generateMap();
-    if (MAP_WIDTH < 3) MAP_WIDTH = 3;
   } else if (keyCode === RIGHT_ARROW) {
     MAP_WIDTH++;
     generateMap();
   } else if (keyCode === UP_ARROW) {
     MAP_HEIGHT--;
+    if (MAP_HEIGHT < 8) MAP_HEIGHT = 8;
     generateMap();
-    if (MAP_HEIGHT < 3) MAP_HEIGHT = 3;
   } else if (keyCode === DOWN_ARROW) {
     MAP_HEIGHT++;
     generateMap();
@@ -144,7 +135,7 @@ function keyPressed() {
 
     while (before < 1) {
 
-      before = traverse(1, 1, true);
+      before = traverse(1, 1);
 
       let i = floor(random(1, MAP_WIDTH - 1));
       let j = floor(random(1, MAP_HEIGHT - 1));
@@ -152,7 +143,7 @@ function keyPressed() {
       flip(i, j);
       flip(MAP_WIDTH - 1 - i, j);
 
-      let after = traverse(1, 1, true);
+      let after = traverse(1, 1);
 
       if (after < before) {
         flip(i, j);
@@ -213,14 +204,21 @@ function draw() {
 
   background(0, 0, 64);
 
-  let size = 64;
+  let size = 32;
+  textSize(14);
+  fill(255, 255, 255);
+  textAlign(CENTER, CENTER);
 
   for (let i = 0; i < MAP_WIDTH; i++) {
+    text(i, (i + 1.5) * size, size/2)
     for (let j = 0; j < MAP_HEIGHT; j++) {
+      if (i == 0) text(j, size/2, (j + 1.5) * size);
 
-      tint(map[i][j].r, map[i][j].g, map[i][j].b);
+      tint(0, 255, 0);
 
-      image(walltiles[map[i][j].value], i * size, j * size, size, size);
+      if (map[i][j] > 0) {
+        image(walltiles[map[i][j] % 16], (i + 1) * size, (j + 1) * size, size, size);
+      }
 
     }
   }
