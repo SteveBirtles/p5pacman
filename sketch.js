@@ -1,5 +1,5 @@
-let MAP_WIDTH = 16;
-let MAP_HEIGHT = 14;
+let MAP_WIDTH = 17;
+let MAP_HEIGHT = 15;
 
 const NORTH = 0b00001;
 const EAST = 0b00010;
@@ -32,7 +32,7 @@ function generateMap() {
     map.push(row);
   }
 
-  for (let i = 0; i < floor(MAP_WIDTH / 2) - 1; i += 2) {
+  for (let i = 0; i < MAP_WIDTH / 2 - 1; i += 2) {
     if (i < MAP_HEIGHT / 2 - 1) {
       for (let j = i + 1; j < floor(MAP_WIDTH) - i - 1; j++) {
         map[j][i] = EAST | WEST;
@@ -49,15 +49,13 @@ function generateMap() {
     }
   }
 
-  let centreI = 0;
-  let centreJ = 0;
-
-  
+  let centre = floor((min(MAP_WIDTH, MAP_HEIGHT) - 3) / 4) * 2 + 1;
 
   for (let i = 0; i < MAP_WIDTH; i++) {
     for (let j = 0; j < MAP_HEIGHT; j++) {
       if (map[i][j] != 0) continue;
-      map[i][j] = PILL;
+      if (i < centre || j < centre || i > MAP_WIDTH - centre || j > MAP_HEIGHT - centre) map[i][j] = PILL;
+
     }
   }
 
@@ -80,10 +78,10 @@ function traverse(x, y, history = null) {
 
   history[x][y] = true;
 
-  if (x > 0 && map[x - 1][y].value == 0 && !history[x - 1][y]) traverse(x - 1, y, false);
-  if (y > 0 && map[x][y - 1].value == 0 && !history[x][y - 1]) traverse(x, y - 1, false);
-  if (x < MAP_WIDTH - 1 && map[x + 1][y].value == 0 && !history[x + 1][y]) traverse(x + 1, y, false);
-  if (y < MAP_HEIGHT - 1 && map[x][y + 1].value == 0 && !history[x][y + 1]) traverse(x, y + 1, false);
+  if (x > 0 && map[x - 1][y].value == 0 && !history[x - 1][y]) traverse(x - 1, y, history);
+  if (y > 0 && map[x][y - 1].value == 0 && !history[x][y - 1]) traverse(x, y - 1, history);
+  if (x < MAP_WIDTH - 1 && map[x + 1][y].value == 0 && !history[x + 1][y]) traverse(x + 1, y, history);
+  if (y < MAP_HEIGHT - 1 && map[x][y + 1].value == 0 && !history[x][y + 1]) traverse(x, y + 1, history);
 
   if (final) {
 
@@ -131,7 +129,7 @@ function keyPressed() {
     generateMap();
   } else if (keyCode === 32) {
 
-    let before = 0;
+    /* let before = 0;
 
     while (before < 1) {
 
@@ -150,6 +148,87 @@ function keyPressed() {
         flip(MAP_WIDTH - 1 - i, j);
       }
 
+    } */
+
+    for (let i = 2; i < MAP_WIDTH / 2; i++) {
+      for (let j = 2; j < MAP_HEIGHT - 2; j++) {
+
+        if (random(6) < 1) {
+
+          if (map[i][j] % 16 != 0) {
+
+            //if (i < MAP_WIDTH / 2) {
+            if (map[i - 1][j] % 16 == 0 && map[i + 1][j + 1] % 16 == 0 &&
+              map[i][j + 1] % 16 != 0 && map[i][j - 1] % 16 != 0 &&
+              map[i][j + 2] % 16 != 0 && map[i][j - 2] % 16 != 0) {
+
+              map[i][j] = PILL;
+              map[i][j + 1] = map[i][j + 1] & ~NORTH;
+              map[i][j - 1] = map[i][j - 1] & ~SOUTH;
+
+              map[MAP_WIDTH - 1 - i][j] = PILL;
+              map[MAP_WIDTH - 1 - i][j + 1] = map[MAP_WIDTH - 1 - i][j + 1] & ~NORTH;
+              map[MAP_WIDTH - 1 - i][j - 1] = map[MAP_WIDTH - 1 - i][j - 1] & ~SOUTH;
+
+              //map[i + 1][j - 1] = 0; //map[i - 1][j + 1] & ~NORTH;
+              //map[i + 1][j + 1] = 0; //map[i + 1][j + 1] & ~SOUTH;
+              //map[i + 1][j - 2] = map[i + 1][j - 2] | NORTH;
+              //map[i + 1][j + 2] = map[i + 1][j + 2] | SOUTH ;
+            }
+            //}
+
+            /*if (map[i - 1][j] % 16 == 0 && map[i + 1][j] % 16 == 0 &&
+              map[i][j - 1] % 16 != 0 && map[i][j + 1] % 16 != 0) {
+              map[i][j] = map[i][j] | SOUTH | NORTH
+              map[i][j + 1] = map[i][j + 1] | NORTH;
+              map[i][j - 1] = map[i][j - 1] | SOUTH;
+                
+            }*/
+
+          }
+        }
+
+        if (random(6) < 1) {
+
+          if (map[i][j] % 16 != 0) {
+
+            //if (i < MAP_WIDTH / 2) {
+            if (map[i - 1][j - 1] % 16 == 0 && map[i + 1][j + 1] % 16 == 0 &&
+              map[i][j + 1] % 16 != 0 && map[i][j - 1] % 16 != 0 &&
+              map[i][j + 2] % 16 != 0 && map[i][j - 2] % 16 != 0 &&
+              map[i - 2][j] % 16 != 0) {
+
+              map[i][j - 1] = PILL;
+              map[i - 1][j] = EAST | WEST;
+              map[i][j + 1] = PILL;
+              map[i - 2][j] = map[i - 2][j] | EAST;
+              map[i][j] = ((map[i][j] | WEST) & ~NORTH) & ~SOUTH;
+              map[i][j + 2] = map[i][j + 2] & ~NORTH;
+              map[i][j - 2] = map[i][j - 2] & ~SOUTH;
+
+              map[MAP_WIDTH - 1 - i][j - 1] = PILL;
+              map[MAP_WIDTH - 1 - (i - 1)][j] = EAST | WEST;
+              map[MAP_WIDTH - 1 - i][j + 1] = PILL;
+              map[MAP_WIDTH - 1 - (i - 2)][j] = map[MAP_WIDTH - 1 - (i - 2)][j] | WEST;
+              map[MAP_WIDTH - 1 - i][j] = ((map[MAP_WIDTH - 1 - i][j] | EAST) & ~NORTH) & ~SOUTH;
+              map[MAP_WIDTH - 1 - i][j + 2] = map[MAP_WIDTH - 1 - i][j + 2] & ~NORTH;
+              map[MAP_WIDTH - 1 - i][j - 2] = map[MAP_WIDTH - 1 - i][j - 2] & ~SOUTH;
+
+            }
+            //}
+
+            /*if (map[i - 1][j] % 16 == 0 && map[i + 1][j] % 16 == 0 &&
+              map[i][j - 1] % 16 != 0 && map[i][j + 1] % 16 != 0) {
+              map[i][j] = map[i][j] | SOUTH | NORTH
+              map[i][j + 1] = map[i][j + 1] | NORTH;
+              map[i][j - 1] = map[i][j - 1] | SOUTH;
+                
+            }*/
+
+          }
+        }
+
+      }
     }
 
   }
@@ -204,20 +283,23 @@ function draw() {
 
   background(0, 0, 64);
 
-  let size = 32;
-  textSize(14);
-  fill(255, 255, 255);
-  textAlign(CENTER, CENTER);
+  let size = floor(min(windowWidth / MAP_WIDTH, windowHeight / (MAP_HEIGHT + 1)));
+  let xOffset = windowWidth / 2 - (MAP_WIDTH / 2) * size;
+  let yOffset = windowHeight / 2 - ((MAP_HEIGHT - 1) / 2) * size;
+
+  //textSize(14);
+  //fill(255, 255, 255);
+  //textAlign(CENTER, CENTER);
 
   for (let i = 0; i < MAP_WIDTH; i++) {
-    text(i, (i + 1.5) * size, size/2)
+    //text(i, (i + 1.5) * size, size / 2)
     for (let j = 0; j < MAP_HEIGHT; j++) {
-      if (i == 0) text(j, size/2, (j + 1.5) * size);
+      //if (i == 0) text(j, size / 2, (j + 1.5) * size);
 
       tint(0, 255, 0);
 
       if (map[i][j] > 0) {
-        image(walltiles[map[i][j] % 16], (i + 1) * size, (j + 1) * size, size, size);
+        image(walltiles[map[i][j] % 16], i * size + xOffset, j * size + yOffset, size, size);
       }
 
     }
