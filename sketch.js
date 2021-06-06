@@ -10,6 +10,8 @@ const PILL = 0b10000;
 let map;
 let colours;
 
+let lastMap, lastU;
+
 let walltiles = [];
 
 function preload() {
@@ -26,7 +28,7 @@ let u, v;
 
 function generateMap() {
 
-  u = 2;
+  u = 1;
   v = 1;
 
   map = [];
@@ -67,7 +69,7 @@ function generateMap() {
 function magic(i, j) {
   if (map[i][j] % 16 != 0) {
 
-    if (random(6) < 3) {
+    if (random(6) < 3 || i > MAP_WIDTH / 2 - 2 && j > MAP_WIDTH / 2 - 4) {
 
       if (i > j && map[i - 1][j] % 16 == 0 &&
         map[i][j + 1] % 16 != 0 && map[i][j - 1] % 16 != 0 &&
@@ -101,6 +103,7 @@ function magic(i, j) {
       if (map[i - 1][j - 1] % 16 == 0 && map[i - 1][j + 1] % 16 == 0 &&
         map[i][j + 1] % 16 != 0 && map[i][j - 1] % 16 != 0 &&
         map[i][j + 2] % 16 != 0 && map[i][j - 2] % 16 != 0 &&
+        map[i + 1][j - 1] % 16 == 0 && map[i + 1][j + 1] % 16 == 0 &&
         map[i - 2][j] % 16 != 0) {
 
 
@@ -141,6 +144,7 @@ function magic(i, j) {
       } else if (map[i - 1][j - 1] % 16 == 0 && map[i + 1][j - 1] % 16 == 0 &&
         map[i + 1][j] % 16 != 0 && map[i - 1][j] % 16 != 0 &&
         map[i + 2][j] % 16 != 0 && map[i - 2][j] % 16 != 0 &&
+        map[i - 1][j + 1] % 16 == 0 && map[i + 1][j + 1] % 16 == 0 &&
         map[i][j - 2] % 16 != 0) {
 
         map[i][j] = ((map[i][j] | NORTH) & ~EAST) & ~WEST; colours[i][j].r = 255; colours[i][j].g = 255; colours[i][j].b = 255;
@@ -248,34 +252,52 @@ function keyPressed() {
   } else if (keyCode === DOWN_ARROW) {
     MAP_HEIGHT++;
     generateMap();
-  } else if (keyCode == 32) {
+  } else if (keyCode == 32 && u < floor(MAP_WIDTH / 2)) {
 
-    while (u < MAP_WIDTH / 2 - 2) {
-      v++;
-      if (v >= MAP_HEIGHT - 2) {
-        u++;
-        v = 2;
+    lastMap = [];
+    lastU = u;
+    for (let i = 0; i < MAP_WIDTH; i++) {
+      let row = [];      
+      for (let j = 0; j < MAP_HEIGHT; j++) {
+        row.push(map[i][j]);
       }
+      lastMap.push(row);
+    }
 
+    v = 1;
+    u++;  
+    while (v < MAP_HEIGHT - 3) {
+      v++;
       colours[u][v].r = 0; colours[u][v].g = 0; colours[u][v].b = 255;
       magic(u, v);
     }
 
-    let centre = floor((min(MAP_WIDTH, MAP_HEIGHT) - 3) / 4) * 2;
-
+  } else if (keyCode == 8) {
+    
+    u = lastU;
     for (let i = 0; i < MAP_WIDTH; i++) {
       for (let j = 0; j < MAP_HEIGHT; j++) {
-        if (map[i][j] != 0) continue;
-        if (i < centre || j < centre || i > MAP_WIDTH - 1 - centre || j > MAP_HEIGHT - 1 - centre) map[i][j] = PILL;
+        map[i][j] = lastMap[i][j];
       }
     }
 
   }
 
+  let centre = floor((min(MAP_WIDTH, MAP_HEIGHT) - 3) / 4) * 2;
 
-
+  for (let i = 0; i < MAP_WIDTH; i++) {
+    for (let j = 0; j < MAP_HEIGHT; j++) {
+      if (map[i][j] != 0) continue;
+      if (i < centre || j < centre || i > MAP_WIDTH - 1 - centre || j > MAP_HEIGHT - 1 - centre) map[i][j] = PILL;
+    }
+  }
 
 }
+
+
+
+
+
 
 
 
