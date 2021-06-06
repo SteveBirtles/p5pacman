@@ -1,5 +1,5 @@
-let MAP_WIDTH = 25;
-let MAP_HEIGHT = 21;
+let MAP_WIDTH = 27;
+let MAP_HEIGHT = 23;
 
 const NORTH = 0b00001;
 const EAST = 0b00010;
@@ -24,12 +24,7 @@ function preload() {
 
 }
 
-let u, v;
-
 function generateMap() {
-
-  u = 1;
-  v = 1;
 
   map = [];
   colours = [];
@@ -44,147 +39,158 @@ function generateMap() {
     colours.push(crow);
   }
 
-  for (let i = 0; i < MAP_WIDTH / 2 - 1; i += 2) {
-    if (i < MAP_HEIGHT / 2 - 1) {
-      for (let j = i + 1; j < floor(MAP_WIDTH) - i - 1; j++) {
-        map[j][i] = EAST | WEST;
-        map[j][MAP_HEIGHT - i - 1] = EAST | WEST;
-      }
-      map[i][i] = SOUTH | EAST;
-      map[i][MAP_HEIGHT - 1 - i] = NORTH | EAST;
-      map[MAP_WIDTH - 1 - i][i] = SOUTH | WEST;
-      map[MAP_WIDTH - 1 - i][MAP_HEIGHT - 1 - i] = NORTH | WEST;
-    }
-    for (let j = i + 1; j < MAP_HEIGHT - 1 - i; j++) {
-      map[i][j] = NORTH | SOUTH;
-      map[MAP_WIDTH - 1 - i][j] = NORTH | SOUTH;
+  for (let x = 1; x < MAP_WIDTH - 1; x++) {
+    map[x][0] = SOUTH | EAST | WEST;
+    map[x][MAP_HEIGHT - 1] = NORTH | EAST | WEST;
+  }
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    map[0][y] = EAST | NORTH | SOUTH;
+    map[MAP_WIDTH - 1][y] = WEST | NORTH | SOUTH;
+  }
+
+  map[0][0] = EAST | SOUTH;
+  map[MAP_WIDTH - 1][0] = WEST | SOUTH;
+  map[0][MAP_HEIGHT - 1] = EAST | NORTH;
+  map[MAP_WIDTH - 1][MAP_HEIGHT - 1] = WEST | NORTH;
+
+  for (let x = 2; x < MAP_WIDTH - 2; x += 2) {
+    for (let y = 2; y < MAP_HEIGHT - 2; y += 2) {
+      map[x][y] = NORTH | SOUTH | EAST | WEST;
     }
   }
 
+  for (let i = 0; i < MAP_WIDTH * MAP_HEIGHT; i++) {
 
+    let x = floor(random(0, MAP_WIDTH / 2 - 2)) + 1;
+    let y = floor(random(0, MAP_HEIGHT - 2)) + 1;
+
+    if (map[x][y] != 0) continue;
+
+    map[x][y] = NORTH | SOUTH | EAST | WEST;
+
+    let invalid = false;
+
+    for (let u = -1; u <= 1; u++) {
+      for (let v = -1; v <= 1; v++) {
+        if (map[x + u][y + v] != 0) continue;
+        let directions = 0;
+        if (x + u < MAP_WIDTH - 1 && map[x + u + 1][y + v] == 0) directions++;
+        if (x + u > 0 && map[x + u - 1][y + v] == 0) directions++;
+        if (y + v < MAP_HEIGHT - 1 && map[x + u][y + v + 1] == 0) directions++;
+        if (y + v > 0 && map[x + u][y + v - 1] == 0) directions++;
+        if (directions == 1) {
+          map[x][y] = 0;
+          invalid = true;
+        }
+      }
+    }
+
+    if (!invalid) {
+      if (map[x + 1][y] != 0 && map[x + 1][y + 1] != 0 && map[x][y + 1] != 0 ||
+        map[x - 1][y] != 0 && map[x - 1][y + 1] != 0 && map[x][y + 1] != 0 ||
+        map[x - 1][y] != 0 && map[x - 1][y - 1] != 0 && map[x][y - 1] != 0 ||
+        map[x + 1][y] != 0 && map[x + 1][y - 1] != 0 && map[x][y - 1] != 0) invalid = true;
+    }
+
+    if (!invalid) {
+      let t = traverse(1, 1);
+      if (t < 1) invalid = true;
+    }
+
+    if (invalid) {
+      map[x][y] = 0;
+    }
+
+    map[MAP_WIDTH - 1 - x][y] = map[x][y];
+
+  }
+
+  for (let x = 0; x < MAP_WIDTH; x++) {
+    for (let y = 0; y < MAP_HEIGHT; y++) {
+      if (map[x][y] % 16 != 0) {
+        if (x < MAP_WIDTH - 1 && map[x + 1][y] % 16 == 0) map[x][y] = map[x][y] & ~EAST;
+        if (x > 0 && map[x - 1][y] % 16 == 0) map[x][y] = map[x][y] & ~WEST;
+        if (y < MAP_HEIGHT - 1 && map[x][y + 1] % 16 == 0) map[x][y] = map[x][y] & ~SOUTH;
+        if (y > 0 && map[x][y - 1] % 16 == 0) map[x][y] = map[x][y] & ~NORTH;
+      }
+    }
+  }
+
+  let infiniteCheck = 0;
+
+  for (let x = 1; x < MAP_WIDTH - 1; x++) {
+    for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+      if (map[x][y] % 16 == 0) {
+        if (infiniteCheck < 100 &&
+          map[x + 1][y] % 16 == 0 && map[x][y + 1] % 16 == 0 && map[x - 1][y] % 16 == 0 && map[x][y - 1] % 16 == 0 &&
+          map[x + 1][y + 1] % 16 == 0 && map[x - 1][y + 1] % 16 == 0 && map[x - 1][y + 1] % 16 == 0 && map[x - 1][y - 1] % 16 == 0) {
+
+          if (x < MAP_WIDTH / 2) {
+            map[x][y] = EAST;
+            map[x + 1][y] = EAST | WEST;
+            map[x + 2][y] = ((map[x + 2][y] & ~NORTH) & ~SOUTH) | WEST;
+            map[x + 2][y - 1] = PILL;
+            map[x + 2][y + 1] = PILL;
+            map[x + 2][y - 2] = map[x + 2][y - 2] & ~SOUTH;
+            map[x + 2][y + 2] = map[x + 2][y + 2] & ~NORTH;
+          } else {
+            map[x][y] = WEST;
+            map[x - 1][y] = EAST | WEST;
+            map[x - 2][y] = ((map[x - 2][y] & ~NORTH) & ~SOUTH) | EAST;
+            map[x - 2][y - 1] = PILL;
+            map[x - 2][y + 1] = PILL;
+            map[x - 2][y - 2] = map[x - 2][y - 2] & ~SOUTH;
+            map[x - 2][y + 2] = map[x - 2][y + 2] & ~NORTH;
+          }
+
+          x = 1;
+          y = 1;
+          infiniteCheck++;
+
+        } else {
+
+          map[x][y] = PILL;
+
+        }
+      }
+    }
+
+  }
+
+  let u = floor(MAP_WIDTH / 2);
+  let v = floor(MAP_HEIGHT / 2);
+
+  for (let i = -2; i <= 2; i++) {
+    for (let j = -2; j <= 2; j++) {
+      if (abs(i) == 2 || abs(j) == 2) {
+        map[u + i][v + j] = PILL;
+      } else {
+        map[u + i][v + j] = 0;
+      }
+      
+      map[u + i + 1][v + j] = map[u + i + 1][v + j] & ~WEST;
+      map[u + i - 1][v + j] = map[u + i - 1][v + j] & ~EAST;
+      map[u + i][v + j + 1] = map[u + i][v + j + 1] & ~NORTH;
+      map[u + i][v + j - 1] = map[u + i][v + j - 1] & ~SOUTH;
+    }
+  }
+
+  if (map[u - 1][v - 3] == 0 && map[u + 1][v - 3] == 0) {
+    map[u - 1][v - 3] = EAST;
+    map[u][v - 3] = EAST | WEST;
+    map[u + 1][v - 3] = WEST;
+  }
+
+  if (map[u - 1][v + 3] == 0 && map[u + 1][v + 3] == 0) {
+    map[u - 1][v + 3] = EAST;
+    map[u][v + 3] = EAST | WEST;
+    map[u + 1][v + 3] = WEST;
+  }
 
 
 }
 
-function magic(i, j) {
-  if (map[i][j] % 16 != 0) {
 
-    if (random(6) < 3 || i > MAP_WIDTH / 2 - 2 && j > MAP_WIDTH / 2 - 4) {
-
-      if (i > j && map[i - 1][j] % 16 == 0 &&
-        map[i][j + 1] % 16 != 0 && map[i][j - 1] % 16 != 0 &&
-        map[i][j + 2] % 16 != 0 && map[i][j - 2] % 16 != 0) {
-
-        map[i][j] = 0;
-        map[i][j + 1] = map[i][j + 1] & ~NORTH; //colours[i][j + 1].r = 255; colours[i][j + 1].g = 0; colours[i][j + 1].b = 0;
-        map[i][j - 1] = map[i][j - 1] & ~SOUTH; //colours[i][j - 1].r = 255; colours[i][j - 1].g = 128; colours[i][j - 1].b = 0;
-
-        map[MAP_WIDTH - 1 - i][j] = 0;
-        map[MAP_WIDTH - 1 - i][j + 1] = map[MAP_WIDTH - 1 - i][j + 1] & ~NORTH;
-        map[MAP_WIDTH - 1 - i][j - 1] = map[MAP_WIDTH - 1 - i][j - 1] & ~SOUTH;
-
-      } else if (map[i][j - 1] % 16 == 0 &&
-        map[i + 1][j] % 16 != 0 && map[i - 1][j] % 16 != 0 &&
-        map[i + 2][j] % 16 != 0 && map[i - 2][j] % 16 != 0) {
-
-        map[i][j] = 0;
-        map[i + 1][j] = map[i + 1][j] & ~WEST;
-        map[i - 1][j] = map[i - 1][j] & ~EAST;
-
-        map[MAP_WIDTH - 1 - i][j] = 0;
-        map[MAP_WIDTH - 1 - (i + 1)][j] = map[MAP_WIDTH - 1 - (i + 1)][j] & ~EAST;
-        map[MAP_WIDTH - 1 - (i - 1)][j] = map[MAP_WIDTH - 1 - (i - 1)][j] & ~WEST;
-
-
-      }
-
-    } else {
-
-      if (map[i - 1][j - 1] % 16 == 0 && map[i - 1][j + 1] % 16 == 0 &&
-        map[i][j + 1] % 16 != 0 && map[i][j - 1] % 16 != 0 &&
-        map[i][j + 2] % 16 != 0 && map[i][j - 2] % 16 != 0 &&
-        map[i + 1][j - 1] % 16 == 0 && map[i + 1][j + 1] % 16 == 0 &&
-        map[i - 2][j] % 16 != 0) {
-
-
-        map[i][j] = ((map[i][j] | WEST) & ~NORTH) & ~SOUTH; //colours[i][j].r = 255; colours[i][j].g = 0; colours[i][j].b = 255;
-
-        map[i][j - 1] = 0;
-        map[i][j + 1] = 0;
-
-        map[i - 1][j] = EAST | WEST; //colours[i - 1][j].r = 255; colours[i - 1][j].g = 255; colours[i - 1][j].b = 0;
-        map[i - 2][j] = map[i - 2][j] | EAST; //colours[i - 2][j].r = 0; colours[i - 2][j].g = 255; colours[i - 2][j].b = 0;
-
-        map[i][j + 2] = map[i][j + 2] & ~NORTH; //colours[i][j + 2].r = 255; colours[i][j + 2].g = 0; colours[i][j + 2].b = 255
-        map[i][j - 2] = map[i][j - 2] & ~SOUTH; //colours[i][j - 2].r = 255; colours[i][j - 2].g = 0; colours[i][j - 2].b = 255;
-
-        if (map[i][j - 2] == 0 && map[i + 1][j - 2] % 16 == 0) {
-          map[i][j - 2] = EAST; colours[i][j - 2].r = 255; colours[i][j - 2].g = 0; colours[i][j - 2].b = 255;
-          map[i + 1][j - 2] = EAST | WEST;
-          map[i + 2][j - 2] = map[i + 2][j - 2] | WEST;
-        }
-
-        map[MAP_WIDTH - 1 - i][j] = ((map[MAP_WIDTH - 1 - i][j] | EAST) & ~NORTH) & ~SOUTH;
-
-        map[MAP_WIDTH - 1 - i][j - 1] = 0;
-        map[MAP_WIDTH - 1 - i][j + 1] = 0;
-
-        map[MAP_WIDTH - 1 - (i - 1)][j] = EAST | WEST;
-        map[MAP_WIDTH - 1 - (i - 2)][j] = map[MAP_WIDTH - 1 - (i - 2)][j] | WEST;
-
-        map[MAP_WIDTH - 1 - i][j + 2] = map[MAP_WIDTH - 1 - i][j + 2] & ~NORTH;
-        map[MAP_WIDTH - 1 - i][j - 2] = map[MAP_WIDTH - 1 - i][j - 2] & ~SOUTH;
-
-        if (map[MAP_WIDTH - 1 - i][j - 2] == 0 && map[MAP_WIDTH - 1 - (i + 1)][j - 2] % 16 == 0) {
-          map[MAP_WIDTH - 1 - i][j - 2] = WEST; colours[MAP_WIDTH - 1 - i][j - 2].r = 255; colours[MAP_WIDTH - 1 - i][j - 2].g = 0; colours[MAP_WIDTH - 1 - i][j - 2].b = 255;
-          map[MAP_WIDTH - 1 - (i + 1)][j - 2] = EAST | WEST;
-          map[MAP_WIDTH - 1 - (i + 2)][j - 2] = map[MAP_WIDTH - 1 - (i + 2)][j - 2] | EAST;
-        }
-
-      } else if (map[i - 1][j - 1] % 16 == 0 && map[i + 1][j - 1] % 16 == 0 &&
-        map[i + 1][j] % 16 != 0 && map[i - 1][j] % 16 != 0 &&
-        map[i + 2][j] % 16 != 0 && map[i - 2][j] % 16 != 0 &&
-        map[i - 1][j + 1] % 16 == 0 && map[i + 1][j + 1] % 16 == 0 &&
-        map[i][j - 2] % 16 != 0) {
-
-        map[i][j] = ((map[i][j] | NORTH) & ~EAST) & ~WEST; colours[i][j].r = 255; colours[i][j].g = 255; colours[i][j].b = 255;
-
-        map[i - 1][j] = 0; colours[i - 1][j].r = 0; colours[i - 1][j].g = 0; colours[i - 1][j].b = 255;
-        map[i + 1][j] = 0; colours[i + 1][j].r = 0; colours[i + 1][j].g = 0; colours[i + 1][j].b = 255;
-
-        map[i][j - 1] = NORTH | SOUTH; colours[i][j - 1].r = 255; colours[i][j - 1].g = 0; colours[i][j - 1].b = 0;
-        map[i][j - 2] = map[i][j - 2] | SOUTH; colours[i][j - 2].r = 255; colours[i][j - 2].g = 0; colours[i][j - 2].b = 0;
-
-        map[i + 2][j] = map[i + 2][j] & ~WEST; colours[i + 2][j].r = 255; colours[i + 2][j].g = 0; colours[i + 2][j].b = 0;
-        map[i - 2][j] = map[i - 2][j] & ~EAST; colours[i - 2][j].r = 255; colours[i - 2][j].g = 0; colours[i - 2][j].b = 0;
-
-        if (map[i - 2][j] == 0 && map[i - 2][j + 1] % 16 == 0) {
-          map[i - 2][j] = SOUTH; colours[i - 2][j].r = 255; colours[i - 2][j].g = 255; colours[i - 2][j].b = 0;
-          map[i - 2][j + 1] = SOUTH | NORTH; colours[i - 2][j + 1].r = 255; colours[i - 2][j + 1].g = 255; colours[i - 2][j + 1].b = 0;
-          map[i - 2][j + 2] = map[i - 2][j + 2] | NORTH; colours[i - 2][j + 2].r = 255; colours[i - 2][j + 2].g = 255; colours[i - 2][j + 2].b = 0;
-        }
-
-        map[MAP_WIDTH - 1 - i][j] = ((map[MAP_WIDTH - 1 - i][j] | NORTH) & ~EAST) & ~WEST; //colours[i][j].r = 255; colours[i][j].g = 255; colours[i][j].b = 255;
-
-        map[MAP_WIDTH - 1 - (i - 1)][j] = 0; //colours[i - 1][j].r = 0; colours[i - 1][j].g = 0; colours[i - 1][j].b = 255;
-        map[MAP_WIDTH - 1 - (i + 1)][j] = 0; //colours[i + 1][j].r = 0; colours[i + 1][j].g = 0; colours[i + 1][j].b = 255;
-
-        map[MAP_WIDTH - 1 - i][j - 1] = NORTH | SOUTH; //colours[i][j - 1].r = 255; colours[i][j - 1].g = 0; colours[i][j - 1].b = 0;
-        map[MAP_WIDTH - 1 - i][j - 2] = map[MAP_WIDTH - 1 - i][j - 2] | SOUTH; //colours[i][j - 2].r = 255; colours[i][j - 2].g = 0; colours[i][j - 2].b = 0;
-
-        map[MAP_WIDTH - 1 - (i + 2)][j] = map[MAP_WIDTH - 1 - (i + 2)][j] & ~EAST; //colours[i + 2][j].r = 255; colours[i + 2][j].g = 0; colours[i + 2][j].b = 0;
-        map[MAP_WIDTH - 1 - (i - 2)][j] = map[MAP_WIDTH - 1 - (i - 2)][j] & ~WEST; //colours[i - 2][j].r = 255; colours[i - 2][j].g = 0; colours[i - 2][j].b = 0;
-
-        if (map[MAP_WIDTH - 1 - (i - 2)][j] == 0 && map[MAP_WIDTH - 1 - (i - 2)][j + 1] % 16 == 0) {
-          map[MAP_WIDTH - 1 - (i - 2)][j] = SOUTH; //colours[i - 2][j].r = 255; //colours[i - 2][j].g = 255; colours[i - 2][j].b = 0;
-          map[MAP_WIDTH - 1 - (i - 2)][j + 1] = SOUTH | NORTH; //colours[i - 2)][j + 1].r = 255; //colours[i - 2][j + 1].g = 255; colours[i - 2][j + 1].b = 0;
-          map[MAP_WIDTH - 1 - (i - 2)][j + 2] = map[MAP_WIDTH - 1 - (i - 2)][j + 2] | NORTH; //colours[i - 2][j + 2].r = 255; colours[i - 2][j + 2].g = 255; colours[i - 2][j + 2].b = 0;
-        }
-
-      }
-    }
-  }
-}
 
 function traverse(x, y, history = null) {
 
@@ -203,10 +209,10 @@ function traverse(x, y, history = null) {
 
   history[x][y] = true;
 
-  if (x > 0 && map[x - 1][y].value == 0 && !history[x - 1][y]) traverse(x - 1, y, history);
-  if (y > 0 && map[x][y - 1].value == 0 && !history[x][y - 1]) traverse(x, y - 1, history);
-  if (x < MAP_WIDTH - 1 && map[x + 1][y].value == 0 && !history[x + 1][y]) traverse(x + 1, y, history);
-  if (y < MAP_HEIGHT - 1 && map[x][y + 1].value == 0 && !history[x][y + 1]) traverse(x, y + 1, history);
+  if (x > 0 && map[x - 1][y] == 0 && !history[x - 1][y]) traverse(x - 1, y, history);
+  if (y > 0 && map[x][y - 1] == 0 && !history[x][y - 1]) traverse(x, y - 1, history);
+  if (x < MAP_WIDTH - 1 && map[x + 1][y] == 0 && !history[x + 1][y]) traverse(x + 1, y, history);
+  if (y < MAP_HEIGHT - 1 && map[x][y + 1] == 0 && !history[x][y + 1]) traverse(x, y + 1, history);
 
   if (final) {
 
@@ -221,7 +227,7 @@ function traverse(x, y, history = null) {
       }
     }
 
-    return (traversedCount / totalCount);
+    return traversedCount / totalCount;
 
   }
 
@@ -239,57 +245,21 @@ function setup() {
 function keyPressed() {
 
   if (keyCode === LEFT_ARROW) {
-    MAP_WIDTH--;
-    if (MAP_WIDTH < 8) MAP_WIDTH = 8;
+    MAP_WIDTH -= 4;
+    if (MAP_WIDTH < 11) MAP_WIDTH = 11;
     generateMap();
   } else if (keyCode === RIGHT_ARROW) {
-    MAP_WIDTH++;
+    MAP_WIDTH += 4;
     generateMap();
   } else if (keyCode === UP_ARROW) {
-    MAP_HEIGHT--;
-    if (MAP_HEIGHT < 8) MAP_HEIGHT = 8;
+    MAP_HEIGHT -= 4;
+    if (MAP_HEIGHT < 11) MAP_HEIGHT = 11;
     generateMap();
   } else if (keyCode === DOWN_ARROW) {
-    MAP_HEIGHT++;
+    MAP_HEIGHT += 4;
     generateMap();
-  } else if (keyCode == 32 && u < floor(MAP_WIDTH / 2)) {
-
-    lastMap = [];
-    lastU = u;
-    for (let i = 0; i < MAP_WIDTH; i++) {
-      let row = [];      
-      for (let j = 0; j < MAP_HEIGHT; j++) {
-        row.push(map[i][j]);
-      }
-      lastMap.push(row);
-    }
-
-    v = 1;
-    u++;  
-    while (v < MAP_HEIGHT - 3) {
-      v++;
-      colours[u][v].r = 0; colours[u][v].g = 0; colours[u][v].b = 255;
-      magic(u, v);
-    }
-
-  } else if (keyCode == 8) {
-    
-    u = lastU;
-    for (let i = 0; i < MAP_WIDTH; i++) {
-      for (let j = 0; j < MAP_HEIGHT; j++) {
-        map[i][j] = lastMap[i][j];
-      }
-    }
-
-  }
-
-  let centre = floor((min(MAP_WIDTH, MAP_HEIGHT) - 3) / 4) * 2;
-
-  for (let i = 0; i < MAP_WIDTH; i++) {
-    for (let j = 0; j < MAP_HEIGHT; j++) {
-      if (map[i][j] != 0) continue;
-      if (i < centre || j < centre || i > MAP_WIDTH - 1 - centre || j > MAP_HEIGHT - 1 - centre) map[i][j] = PILL;
-    }
+  } else if (keyCode == 32) {
+    generateMap();
   }
 
 }
@@ -323,7 +293,7 @@ function draw() {
 
       if (map[i][j] > 0) {
         image(walltiles[map[i][j] % 16], i * size + xOffset, j * size + yOffset, size, size);
-      }
+      } 
 
     }
   }
