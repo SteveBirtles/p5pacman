@@ -17,6 +17,9 @@ let pill;
 let walltiles = [];
 let basetiles = [];
 
+let palette = [{ r: 0, g: 0, b: 64 }, { r: 0, g: 128, b: 0 }, { r: 255, g: 255, b: 0 }, { r: 128, g: 0, b: 0 }];
+let framerateStack = [];
+
 p5.disableFriendlyErrors = true;
 
 function preload() {
@@ -34,9 +37,7 @@ function preload() {
   basetiles.push(loadImage("e.png"));
   basetiles.push(loadImage("f.png"));
   basetiles.push(loadImage("g.png"));
-  basetiles.push(loadImage("h.png"));
-
-  generateMap();
+  basetiles.push(loadImage("h.png"));  
 
 }
 
@@ -242,11 +243,47 @@ function traverse(x, y, history = null) {
 
 
 function windowResized() {
+
   resizeCanvas(windowWidth, windowHeight);
+
 }
 
 function setup() {
+
   createCanvas(windowWidth, windowHeight, P2D);
+
+  for (let w of walltiles) {
+    w.loadPixels();
+    for (let i = 0; i < 4 * w.width * w.height; i += 4) {
+      w.pixels[i] = w.pixels[i] * palette[1].r / 256;
+      w.pixels[i + 1] = w.pixels[i + 1] * palette[1].g / 256;
+      w.pixels[i + 2] = w.pixels[i + 2] * palette[1].b / 256;      
+    }
+    w.updatePixels();
+  }
+
+  pill.loadPixels();
+  for (let i = 0; i < 4 * pill.width * pill.height; i += 4) {
+    pill.pixels[i] = pill.pixels[i] * palette[2].r / 256;
+    pill.pixels[i + 1] = pill.pixels[i + 1] * palette[2].g / 256;
+    pill.pixels[i + 2] = pill.pixels[i + 2] * palette[2].b / 256;      
+  }
+  pill.updatePixels();
+
+  for (let b of basetiles) {
+    b.loadPixels();
+    for (let i = 0; i < 4 * b.width * b.height; i += 4) {
+      b.pixels[i] = b.pixels[i] * palette[3].r / 256;
+      b.pixels[i + 1] = b.pixels[i + 1] * palette[3].g / 256;
+      b.pixels[i + 2] = b.pixels[i + 2] * palette[3].b / 256;      
+    }
+    b.updatePixels();
+  }
+
+
+
+  generateMap();
+
 }
 
 function keyPressed() {
@@ -275,7 +312,13 @@ function keyPressed() {
 
 function draw() {
 
-  background(0, 0, 64);
+  if (framerateStack.length > 30) framerateStack.shift();
+  framerateStack.push(frameRate());
+  let averageFPS = 0;
+  for (let f of framerateStack) averageFPS += f;
+  averageFPS /= framerateStack.length;
+
+  background(palette[0].r, palette[0].g, palette[0].b);
 
   let size = floor(min(windowWidth / MAP_WIDTH, windowHeight / (MAP_HEIGHT + 1)));
   let xOffset = windowWidth / 2 - (MAP_WIDTH / 2) * size;
@@ -284,38 +327,41 @@ function draw() {
   for (let i = 0; i < MAP_WIDTH; i++) {
     for (let j = 0; j < MAP_HEIGHT; j++) {
 
-      if (map[i][j] == PILL) {
-        
-        tint(255, 255, 0);
-        image(pill, i * size + xOffset, j * size + yOffset, size, size);
-        
-      } else if (map[i][j] == ISLAND) {
-        
-        tint(0, 128, 0);
+      if (map[i][j] == ISLAND) {
+
         image(walltiles[0], i * size + xOffset, j * size + yOffset, size, size);
 
       } else if (map[i][j] > 0 && map[i][j] < 16) {
-        
-        tint(0, 128, 0);
-        image(walltiles[map[i][j]], i * size + xOffset, j * size + yOffset, size, size);
-      
-      } else if (map[i][j] == BASE) {        
-        
-        tint(128, 0, 0);        
-        let b = null;        
-        if (map[i-1][j] != BASE && map[i][j-1] != BASE) b = 0;
-        else if (map[i+1][j] != BASE && map[i][j-1] != BASE) b = 2;
-        else if (map[i+1][j] != BASE && map[i][j+1] != BASE) b = 4;
-        else if (map[i-1][j] != BASE && map[i][j+1] != BASE) b = 6;
-        else if (map[i][j-1] != BASE) b = 1;
-        else if (map[i+1][j] != BASE) b = 3;
-        else if (map[i][j+1] != BASE) b = 5;        
-        else if (map[i-1][j] != BASE) b = 7;      
-        if (b != null) image(basetiles[b], i * size + xOffset, j * size + yOffset, size, size);
 
-      } 
+        image(walltiles[map[i][j]], i * size + xOffset, j * size + yOffset, size, size);
+
+      } else if (map[i][j] == PILL) {
+
+        image(pill, i * size + xOffset, j * size + yOffset, size, size);
+
+      } else if (map[i][j] == BASE) {
+
+        let b = null;
+        if (map[i - 1][j] != BASE && map[i][j - 1] != BASE) b = 0;
+        else if (map[i + 1][j] != BASE && map[i][j - 1] != BASE) b = 2;
+        else if (map[i + 1][j] != BASE && map[i][j + 1] != BASE) b = 4;
+        else if (map[i - 1][j] != BASE && map[i][j + 1] != BASE) b = 6;
+        else if (map[i][j - 1] != BASE) b = 1;
+        else if (map[i + 1][j] != BASE) b = 3;
+        else if (map[i][j + 1] != BASE) b = 5;
+        else if (map[i - 1][j] != BASE) b = 7;
+        if (b != null) {
+          image(basetiles[b], i * size + xOffset, j * size + yOffset, size, size);
+        }
+
+      }
 
     }
   }
+
+  textAlign(LEFT, TOP);
+  textSize(18);
+  fill(255, 255, 255);
+  text(floor(averageFPS) + " FPS", 10, 10);
 
 }
