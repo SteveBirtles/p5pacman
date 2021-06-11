@@ -1,17 +1,17 @@
+"option strict";
+
 let MAP_WIDTH = 27;
 let MAP_HEIGHT = 23;
 
-const NORTH = 0b000001;
-const EAST = 0b000010;
-const SOUTH = 0b000100;
-const WEST = 0b001000;
-const ISLAND = 0b010000;
-const PILL = 0b0100000;
-const BASE = 0b01000000;
+const NORTH = 0b1;
+const EAST = 0b10;
+const SOUTH = 0b100;
+const WEST = 0b1000;
+const ISLAND = 0b10000;
+const PILL = 0b100000;
+const BASE = 0b1000000;
 
 let map;
-
-let lastMap, lastU;
 
 let pilltile;
 let walltiles = [];
@@ -25,6 +25,8 @@ let palette = {
   base: { r: 128, g: 0, b: 0 },
   pacman: { r: 255, g: 255, b: 0 }
 };
+
+let player;
 
 let framerateStack = [];
 
@@ -136,6 +138,8 @@ function generateMap() {
       if (t < 1) invalid = true;
     }
 
+    // IF INVALID, RESET BEFORE TRYING AGAIN
+
     if (invalid) {
       map[x][y] = 0;
       map[MAP_WIDTH - 1 - x][y] = 0;
@@ -155,7 +159,7 @@ function generateMap() {
     }
   }
 
-  // EDGE FIX
+  // EDGE FIXES
 
   for (let x = 0; x < MAP_WIDTH; x++) {
     for (let y = 0; y < MAP_HEIGHT; y++) {
@@ -203,9 +207,17 @@ function generateMap() {
     }
   }
 
+  player = {
+    x: 1,
+    y: 1,
+    targetX: 2,
+    targetY: 1,
+    direction: EAST,
+    nextDirection: EAST,
+    progress: 0,
+    speed: 5
+  }
 }
-
-
 
 function traverse(x, y, history = null) {
 
@@ -247,7 +259,6 @@ function traverse(x, y, history = null) {
   }
 
 }
-
 
 function windowResized() {
 
@@ -305,44 +316,27 @@ function setup() {
 
 function keyPressed() {
 
-  /*if (keyCode === LEFT_ARROW) {
-    MAP_WIDTH -= 4;
-    if (MAP_WIDTH < 15) MAP_WIDTH = 15;
-    generateMap();
-  } else if (keyCode === RIGHT_ARROW) {
-    MAP_WIDTH += 4;
-    generateMap();
-  } else if (keyCode === UP_ARROW) {
-    MAP_HEIGHT -= 4;
-    if (MAP_HEIGHT < 11) MAP_HEIGHT = 11;
-    generateMap();
-  } else if (keyCode === DOWN_ARROW) {
-    MAP_HEIGHT += 4;
-    generateMap();
-  } else if (keyCode == 32) {
-    generateMap();
-  }*/
-
-  if (keyCode === LEFT_ARROW) {
-    playerNextDirection = WEST;
-  } else if (keyCode === RIGHT_ARROW) {
-    playerNextDirection = EAST;
-  } else if (keyCode === UP_ARROW) {
-    playerNextDirection = NORTH;
-  } else if (keyCode === DOWN_ARROW) {
-    playerNextDirection = SOUTH;
+  if (keyIsDown(CONTROL)) {
+    if (keyCode === LEFT_ARROW) {
+      MAP_WIDTH -= 4;
+      if (MAP_WIDTH < 15) MAP_WIDTH = 15;
+      generateMap();
+    } else if (keyCode === RIGHT_ARROW) {
+      MAP_WIDTH += 4;
+      generateMap();
+    } else if (keyCode === UP_ARROW) {
+      MAP_HEIGHT -= 4;
+      if (MAP_HEIGHT < 11) MAP_HEIGHT = 11;
+      generateMap();
+    } else if (keyCode === DOWN_ARROW) {
+      MAP_HEIGHT += 4;
+      generateMap();
+    } else if (keyCode == 32) {
+      generateMap();
+    }
   }
 
 }
-
-let playerX = 1;
-let playerY = 1;
-let playerTargetX = 2;
-let playerTargetY = 1;
-let playerDirection = EAST;
-let playerNextDirection = EAST;
-let playerProgress = 0;
-let playerSpeed = 3;
 
 function draw() {
 
@@ -351,6 +345,68 @@ function draw() {
   let averageFPS = 0;
   for (let f of framerateStack) averageFPS += f;
   averageFPS /= framerateStack.length;
+
+  /* INPUTS */
+
+  if (!keyIsDown(CONTROL)) {
+    if (player.targetX > 0 && player.targetX < MAP_WIDTH - 1 && player.targetY > 0 && player.targetY < MAP_HEIGHT - 1) {
+      if (keyIsDown(LEFT_ARROW) && (map[player.targetX - 1][player.targetY] == 0 || map[player.targetX - 1][player.targetY] == PILL)) {
+        player.nextDirection = WEST;
+      } else if (keyIsDown(RIGHT_ARROW) && (map[player.targetX + 1][player.targetY] == 0 || map[player.targetX + 1][player.targetY] == PILL)) {
+        player.nextDirection = EAST;
+      } else if (keyIsDown(UP_ARROW) && (map[player.targetX][player.targetY - 1] == 0 || map[player.targetX][player.targetY - 1] == PILL)) {
+        player.nextDirection = NORTH;
+      } else if (keyIsDown(DOWN_ARROW) && (map[player.targetX][player.targetY + 1] == 0 || map[player.targetX][player.targetY + 1] == PILL)) {
+        player.nextDirection = SOUTH;
+      }
+    }
+  }
+
+  /* PROCESSES */
+
+  player.progress += player.speed * (deltaTime / 1000);
+  if (player.progress >= 1) {
+    player.progress -= 1;
+    player.x = player.targetX;
+    player.y = player.targetY;
+    if (player.targetX > 0 && player.targetX < MAP_WIDTH - 1 && player.targetY > 0 && player.targetY < MAP_HEIGHT - 1) {
+      if (map[player.targetX][player.targetY] == PILL) {
+        map[player.targetX][player.targetY] = 0;
+      }
+      if (player.nextDirection == NORTH) {
+        if (map[player.targetX][player.targetY - 1] == 0 || map[player.targetX][player.targetY - 1] == PILL) {
+          player.targetY--;
+          player.direction = player.nextDirection;
+        } else {
+          player.progress = 1;
+          player.nextDirection = player.direction;
+        }
+      } else if (player.nextDirection == EAST) {
+        if (map[player.targetX + 1][player.targetY] == 0 || map[player.targetX + 1][player.targetY] == PILL) {
+          player.targetX++;
+          player.direction = player.nextDirection;
+        } else {
+          player.progress = 1;
+        }
+      } else if (player.nextDirection == SOUTH) {
+        if (map[player.targetX][player.targetY + 1] == 0 || map[player.targetX][player.targetY + 1] == PILL) {
+          player.targetY++;
+          player.direction = player.nextDirection;
+        } else {
+          player.progress = 1;
+        }
+      } else if (player.nextDirection == WEST) {
+        if (map[player.targetX - 1][player.targetY] == 0 || map[player.targetX - 1][player.targetY] == PILL) {
+          player.targetX--;
+          player.direction = player.nextDirection;
+        } else {
+          player.progress = 1;
+        }
+      }
+    }
+  }
+
+  /* OUTPUTS */
 
   background(palette.background.r, palette.background.g, palette.background.b);
 
@@ -393,66 +449,27 @@ function draw() {
     }
   }
 
-  playerProgress += playerSpeed * (deltaTime / 1000);
-  if (playerProgress >= 1) {
-    playerProgress -= 1;
-    playerX = playerTargetX;
-    playerY = playerTargetY;    
-    if (playerNextDirection == NORTH) {
-      if (map[playerTargetX][playerTargetY - 1] == 0 || map[playerTargetX][playerTargetY - 1] == PILL) {
-        playerTargetY--;
-        playerDirection = playerNextDirection;
-      } else {
-        playerProgress = 1;
-        playerNextDirection = playerDirection;
-      }
-    } else if (playerNextDirection == EAST) {
-      if (map[playerTargetX + 1][playerTargetY] == 0 || map[playerTargetX + 1][playerTargetY] == PILL) {
-        playerTargetX++;
-        playerDirection = playerNextDirection;
-      } else {
-        playerProgress = 1;
-      }      
-    } else if (playerNextDirection == SOUTH) {
-      if (map[playerTargetX][playerTargetY + 1] == 0 || map[playerTargetX][playerTargetY + 1] == PILL) {
-        playerTargetY++;
-        playerDirection = playerNextDirection;
-      } else {
-        playerProgress = 1;
-      }      
-    } else if (playerNextDirection == WEST) {
-      if (map[playerTargetX - 1][playerTargetY] == 0 || map[playerTargetX - 1][playerTargetY] == PILL) {
-        playerTargetX--;
-        playerDirection = playerNextDirection;
-      } else {
-        playerProgress = 1;
-      }
-      
-    }
-  }
-
   let pacmanFrame = floor(2 + 2 * sin(frameCount / 3));
 
-  let x = playerX + playerProgress * (playerTargetX - playerX) + 0.5;
-  let y = playerY + playerProgress * (playerTargetY - playerY) + 0.5;
+  let x = player.x + player.progress * (player.targetX - player.x) + 0.5;
+  let y = player.y + player.progress * (player.targetY - player.y) + 0.5;
 
   push();
   translate(x * size + xOffset, y * size + yOffset);
-  if (playerDirection == NORTH) {
+  if (player.direction == NORTH) {
     rotate(HALF_PI);
-  } else if (playerDirection == EAST) {
+  } else if (player.direction == EAST) {
     rotate(PI);
-  } else if (playerDirection == SOUTH) {
+  } else if (player.direction == SOUTH) {
     rotate(PI + HALF_PI);
   }
   image(pacmans[pacmanFrame], -size / 2, -size / 2, size, size);
   pop();
 
-
   textAlign(LEFT, TOP);
   textSize(18);
   fill(255, 255, 255);
   text(floor(averageFPS) + " FPS", 10, 10);
-  text("Player: " + playerX + ", " + playerY, 10, 30);  
+  text("Player: " + player.x + ", " + player.y, 10, 30);
 
 }
