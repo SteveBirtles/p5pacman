@@ -13,11 +13,19 @@ let map;
 
 let lastMap, lastU;
 
-let pill;
+let pilltile;
 let walltiles = [];
 let basetiles = [];
+let pacmans = [];
 
-let palette = [{ r: 0, g: 0, b: 64 }, { r: 0, g: 128, b: 0 }, { r: 255, g: 255, b: 0 }, { r: 128, g: 0, b: 0 }];
+let palette = {
+  background: { r: 0, g: 0, b: 64 },
+  walls: { r: 0, g: 128, b: 0 },
+  pills: { r: 0, g: 255, b: 255 },
+  base: { r: 128, g: 0, b: 0 },
+  pacman: { r: 255, g: 255, b: 0 }
+};
+
 let framerateStack = [];
 
 p5.disableFriendlyErrors = true;
@@ -25,19 +33,18 @@ p5.disableFriendlyErrors = true;
 function preload() {
 
   for (let i = 0; i < 16; i++) {
-    walltiles.push(loadImage(i + ".png"));
+    walltiles.push(loadImage("gfx/" + i + ".png"));
   }
 
-  pill = loadImage("pill.png");
+  pilltile = loadImage("gfx/pill.png");
 
-  basetiles.push(loadImage("a.png"));
-  basetiles.push(loadImage("b.png"));
-  basetiles.push(loadImage("c.png"));
-  basetiles.push(loadImage("d.png"));
-  basetiles.push(loadImage("e.png"));
-  basetiles.push(loadImage("f.png"));
-  basetiles.push(loadImage("g.png"));
-  basetiles.push(loadImage("h.png"));  
+  for (let i = 97; i <= 104; i++) {
+    basetiles.push(loadImage("gfx/" + String.fromCharCode(i) + ".png"));
+  }
+
+  for (let i = 0; i < 4; i++) {
+    pacmans.push(loadImage("gfx/pacman" + i + ".png"));
+  }
 
 }
 
@@ -252,35 +259,45 @@ function setup() {
 
   createCanvas(windowWidth, windowHeight, P2D);
 
+  frameRate(60);
+
   for (let w of walltiles) {
     w.loadPixels();
     for (let i = 0; i < 4 * w.width * w.height; i += 4) {
-      w.pixels[i] = w.pixels[i] * palette[1].r / 256;
-      w.pixels[i + 1] = w.pixels[i + 1] * palette[1].g / 256;
-      w.pixels[i + 2] = w.pixels[i + 2] * palette[1].b / 256;      
+      w.pixels[i] = w.pixels[i] * palette.walls.r / 256;
+      w.pixels[i + 1] = w.pixels[i + 1] * palette.walls.g / 256;
+      w.pixels[i + 2] = w.pixels[i + 2] * palette.walls.b / 256;
     }
     w.updatePixels();
   }
 
-  pill.loadPixels();
-  for (let i = 0; i < 4 * pill.width * pill.height; i += 4) {
-    pill.pixels[i] = pill.pixels[i] * palette[2].r / 256;
-    pill.pixels[i + 1] = pill.pixels[i + 1] * palette[2].g / 256;
-    pill.pixels[i + 2] = pill.pixels[i + 2] * palette[2].b / 256;      
+  pilltile.loadPixels();
+  for (let i = 0; i < 4 * pilltile.width * pilltile.height; i += 4) {
+    pilltile.pixels[i] = pilltile.pixels[i] * palette.pills.r / 256;
+    pilltile.pixels[i + 1] = pilltile.pixels[i + 1] * palette.pills.g / 256;
+    pilltile.pixels[i + 2] = pilltile.pixels[i + 2] * palette.pills.b / 256;
   }
-  pill.updatePixels();
+  pilltile.updatePixels();
 
   for (let b of basetiles) {
     b.loadPixels();
     for (let i = 0; i < 4 * b.width * b.height; i += 4) {
-      b.pixels[i] = b.pixels[i] * palette[3].r / 256;
-      b.pixels[i + 1] = b.pixels[i + 1] * palette[3].g / 256;
-      b.pixels[i + 2] = b.pixels[i + 2] * palette[3].b / 256;      
+      b.pixels[i] = b.pixels[i] * palette.base.r / 256;
+      b.pixels[i + 1] = b.pixels[i + 1] * palette.base.g / 256;
+      b.pixels[i + 2] = b.pixels[i + 2] * palette.base.b / 256;
     }
     b.updatePixels();
   }
 
-
+  for (let p of pacmans) {
+    p.loadPixels();
+    for (let i = 0; i < 4 * p.width * p.height; i += 4) {
+      p.pixels[i] = p.pixels[i] * palette.pacman.r / 256;
+      p.pixels[i + 1] = p.pixels[i + 1] * palette.pacman.g / 256;
+      p.pixels[i + 2] = p.pixels[i + 2] * palette.pacman.b / 256;
+    }
+    p.updatePixels();
+  }
 
   generateMap();
 
@@ -288,7 +305,7 @@ function setup() {
 
 function keyPressed() {
 
-  if (keyCode === LEFT_ARROW) {
+  /*if (keyCode === LEFT_ARROW) {
     MAP_WIDTH -= 4;
     if (MAP_WIDTH < 15) MAP_WIDTH = 15;
     generateMap();
@@ -304,11 +321,28 @@ function keyPressed() {
     generateMap();
   } else if (keyCode == 32) {
     generateMap();
+  }*/
+
+  if (keyCode === LEFT_ARROW) {
+    playerNextDirection = WEST;
+  } else if (keyCode === RIGHT_ARROW) {
+    playerNextDirection = EAST;
+  } else if (keyCode === UP_ARROW) {
+    playerNextDirection = NORTH;
+  } else if (keyCode === DOWN_ARROW) {
+    playerNextDirection = SOUTH;
   }
 
 }
 
-
+let playerX = 1;
+let playerY = 1;
+let playerTargetX = 2;
+let playerTargetY = 1;
+let playerDirection = EAST;
+let playerNextDirection = EAST;
+let playerProgress = 0;
+let playerSpeed = 3;
 
 function draw() {
 
@@ -318,7 +352,7 @@ function draw() {
   for (let f of framerateStack) averageFPS += f;
   averageFPS /= framerateStack.length;
 
-  background(palette[0].r, palette[0].g, palette[0].b);
+  background(palette.background.r, palette.background.g, palette.background.b);
 
   let size = floor(min(windowWidth / MAP_WIDTH, windowHeight / (MAP_HEIGHT + 1)));
   let xOffset = windowWidth / 2 - (MAP_WIDTH / 2) * size;
@@ -337,7 +371,7 @@ function draw() {
 
       } else if (map[i][j] == PILL) {
 
-        image(pill, i * size + xOffset, j * size + yOffset, size, size);
+        image(pilltile, i * size + xOffset, j * size + yOffset, size, size);
 
       } else if (map[i][j] == BASE) {
 
@@ -359,9 +393,66 @@ function draw() {
     }
   }
 
+  playerProgress += playerSpeed * (deltaTime / 1000);
+  if (playerProgress >= 1) {
+    playerProgress -= 1;
+    playerX = playerTargetX;
+    playerY = playerTargetY;    
+    if (playerNextDirection == NORTH) {
+      if (map[playerTargetX][playerTargetY - 1] == 0 || map[playerTargetX][playerTargetY - 1] == PILL) {
+        playerTargetY--;
+        playerDirection = playerNextDirection;
+      } else {
+        playerProgress = 1;
+        playerNextDirection = playerDirection;
+      }
+    } else if (playerNextDirection == EAST) {
+      if (map[playerTargetX + 1][playerTargetY] == 0 || map[playerTargetX + 1][playerTargetY] == PILL) {
+        playerTargetX++;
+        playerDirection = playerNextDirection;
+      } else {
+        playerProgress = 1;
+      }      
+    } else if (playerNextDirection == SOUTH) {
+      if (map[playerTargetX][playerTargetY + 1] == 0 || map[playerTargetX][playerTargetY + 1] == PILL) {
+        playerTargetY++;
+        playerDirection = playerNextDirection;
+      } else {
+        playerProgress = 1;
+      }      
+    } else if (playerNextDirection == WEST) {
+      if (map[playerTargetX - 1][playerTargetY] == 0 || map[playerTargetX - 1][playerTargetY] == PILL) {
+        playerTargetX--;
+        playerDirection = playerNextDirection;
+      } else {
+        playerProgress = 1;
+      }
+      
+    }
+  }
+
+  let pacmanFrame = floor(2 + 2 * sin(frameCount / 3));
+
+  let x = playerX + playerProgress * (playerTargetX - playerX) + 0.5;
+  let y = playerY + playerProgress * (playerTargetY - playerY) + 0.5;
+
+  push();
+  translate(x * size + xOffset, y * size + yOffset);
+  if (playerDirection == NORTH) {
+    rotate(HALF_PI);
+  } else if (playerDirection == EAST) {
+    rotate(PI);
+  } else if (playerDirection == SOUTH) {
+    rotate(PI + HALF_PI);
+  }
+  image(pacmans[pacmanFrame], -size / 2, -size / 2, size, size);
+  pop();
+
+
   textAlign(LEFT, TOP);
   textSize(18);
   fill(255, 255, 255);
   text(floor(averageFPS) + " FPS", 10, 10);
+  text("Player: " + playerX + ", " + playerY, 10, 30);  
 
 }
