@@ -1,18 +1,23 @@
 let MAP_WIDTH = 27;
 let MAP_HEIGHT = 23;
 
-const NORTH = 0b00001;
-const EAST = 0b00010;
-const SOUTH = 0b00100;
-const WEST = 0b01000;
-const PILL = 0b10000;
+const NORTH = 0b000001;
+const EAST = 0b000010;
+const SOUTH = 0b000100;
+const WEST = 0b001000;
+const ISLAND = 0b010000;
+const PILL = 0b0100000;
+const BASE = 0b01000000;
 
 let map;
-let colours;
 
 let lastMap, lastU;
 
+let pill;
 let walltiles = [];
+let basetiles = [];
+
+p5.disableFriendlyErrors = true;
 
 function preload() {
 
@@ -20,38 +25,53 @@ function preload() {
     walltiles.push(loadImage(i + ".png"));
   }
 
+  pill = loadImage("pill.png");
+
+  basetiles.push(loadImage("a.png"));
+  basetiles.push(loadImage("b.png"));
+  basetiles.push(loadImage("c.png"));
+  basetiles.push(loadImage("d.png"));
+  basetiles.push(loadImage("e.png"));
+  basetiles.push(loadImage("f.png"));
+  basetiles.push(loadImage("g.png"));
+  basetiles.push(loadImage("h.png"));
+
   generateMap();
 
 }
 
 function generateMap() {
 
+  // CLEAR MAP
+
   map = [];
-  colours = [];
   for (let i = 0; i < MAP_WIDTH; i++) {
     row = [];
-    crow = [];
     for (let j = 0; j < MAP_HEIGHT; j++) {
       row.push(0);
-      crow.push({ r: 0, g: 128, b: 0 });
     }
     map.push(row);
-    colours.push(crow);
   }
+
+  // MAP EDGES
 
   for (let x = 1; x < MAP_WIDTH - 1; x++) {
     map[x][0] = SOUTH | EAST | WEST;
     map[x][MAP_HEIGHT - 1] = NORTH | EAST | WEST;
   }
-  for (let y = 0; y < MAP_HEIGHT; y++) {
+  for (let y = 0; y < MAP_HEIGHT - 1; y++) {
     map[0][y] = EAST | NORTH | SOUTH;
     map[MAP_WIDTH - 1][y] = WEST | NORTH | SOUTH;
   }
+
+  // MAP CORNERS
 
   map[0][0] = EAST | SOUTH;
   map[MAP_WIDTH - 1][0] = WEST | SOUTH;
   map[0][MAP_HEIGHT - 1] = EAST | NORTH;
   map[MAP_WIDTH - 1][MAP_HEIGHT - 1] = WEST | NORTH;
+
+  // ADD PILLARS EVERY 2 SPACES
 
   for (let x = 2; x < MAP_WIDTH - 2; x += 2) {
     for (let y = 2; y < MAP_HEIGHT - 2; y += 2) {
@@ -59,38 +79,49 @@ function generateMap() {
     }
   }
 
+  // ADD CENTRAL BASE
+
+  let u = floor(MAP_WIDTH / 2);
+  let v = floor(MAP_HEIGHT / 2);
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      map[u + i][v + j] = BASE;
+    }
+  }
+
+  // ADD RANDOMISED WALLS
+
   for (let i = 0; i < MAP_WIDTH * MAP_HEIGHT; i++) {
 
-    let x = floor(random(0, MAP_WIDTH / 2 - 2)) + 1;
-    let y = floor(random(0, MAP_HEIGHT - 2)) + 1;
+    let x = floor(random(1, MAP_WIDTH / 2 - 1));
+    let y = floor(random(1, MAP_HEIGHT - 1));
 
     if (map[x][y] != 0) continue;
 
     map[x][y] = NORTH | SOUTH | EAST | WEST;
+    map[MAP_WIDTH - 1 - x][y] = map[x][y];
 
     let invalid = false;
 
-    for (let u = -1; u <= 1; u++) {
-      for (let v = -1; v <= 1; v++) {
-        if (map[x + u][y + v] != 0) continue;
-        let directions = 0;
-        if (x + u < MAP_WIDTH - 1 && map[x + u + 1][y + v] == 0) directions++;
-        if (x + u > 0 && map[x + u - 1][y + v] == 0) directions++;
-        if (y + v < MAP_HEIGHT - 1 && map[x + u][y + v + 1] == 0) directions++;
-        if (y + v > 0 && map[x + u][y + v - 1] == 0) directions++;
-        if (directions == 1) {
-          map[x][y] = 0;
-          invalid = true;
+    // ...INVALID IF CAUSES A DEAD END
+
+    if (!invalid) {
+      for (let u = -1; u <= 1; u++) {
+        for (let v = -1; v <= 1; v++) {
+          if (map[x + u][y + v] != 0) continue;
+          let directions = 0;
+          if (x + u < MAP_WIDTH - 1 && map[x + u + 1][y + v] == 0) directions++;
+          if (x + u > 0 && map[x + u - 1][y + v] == 0) directions++;
+          if (y + v < MAP_HEIGHT - 1 && map[x + u][y + v + 1] == 0) directions++;
+          if (y + v > 0 && map[x + u][y + v - 1] == 0) directions++;
+          if (directions == 1) {
+            invalid = true;
+          }
         }
       }
     }
 
-    if (!invalid) {
-      if (map[x + 1][y] != 0 && map[x + 1][y + 1] != 0 && map[x][y + 1] != 0 ||
-        map[x - 1][y] != 0 && map[x - 1][y + 1] != 0 && map[x][y + 1] != 0 ||
-        map[x - 1][y] != 0 && map[x - 1][y - 1] != 0 && map[x][y - 1] != 0 ||
-        map[x + 1][y] != 0 && map[x + 1][y - 1] != 0 && map[x][y - 1] != 0) invalid = true;
-    }
+    // ...INVALID IF MAP NOT TRAVERSABLE ANY MORE
 
     if (!invalid) {
       let t = traverse(1, 1);
@@ -99,94 +130,70 @@ function generateMap() {
 
     if (invalid) {
       map[x][y] = 0;
+      map[MAP_WIDTH - 1 - x][y] = 0;
     }
-
-    map[MAP_WIDTH - 1 - x][y] = map[x][y];
 
   }
 
+  // ADD PILLS, INCLUDING CENTRAL LOOP
+
+  for (let i = 1; i < MAP_WIDTH - 1; i++) {
+    for (let j = 1; j < MAP_HEIGHT - 1; j++) {
+      if (map[i][j] == 0 ||
+        abs(u - i) == 2 && abs(v - j) <= 2 ||
+        abs(u - i) <= 2 && abs(v - j) == 2) {
+        map[i][j] = PILL;
+      }
+    }
+  }
+
+  // EDGE FIX
+
   for (let x = 0; x < MAP_WIDTH; x++) {
     for (let y = 0; y < MAP_HEIGHT; y++) {
-      if (map[x][y] % 16 != 0) {
+      if (map[x][y] != 0) {
         if (x < MAP_WIDTH - 1 && map[x + 1][y] % 16 == 0) map[x][y] = map[x][y] & ~EAST;
         if (x > 0 && map[x - 1][y] % 16 == 0) map[x][y] = map[x][y] & ~WEST;
         if (y < MAP_HEIGHT - 1 && map[x][y + 1] % 16 == 0) map[x][y] = map[x][y] & ~SOUTH;
         if (y > 0 && map[x][y - 1] % 16 == 0) map[x][y] = map[x][y] & ~NORTH;
+        if (map[x][y] == 0) map[x][y] = ISLAND;
       }
     }
   }
 
-  let infiniteCheck = 0;
+  // CREATE ISLANDS
 
   for (let x = 1; x < MAP_WIDTH - 1; x++) {
     for (let y = 1; y < MAP_HEIGHT - 1; y++) {
-      if (map[x][y] % 16 == 0) {
-        if (infiniteCheck < 100 &&
-          map[x + 1][y] % 16 == 0 && map[x][y + 1] % 16 == 0 && map[x - 1][y] % 16 == 0 && map[x][y - 1] % 16 == 0 &&
-          map[x + 1][y + 1] % 16 == 0 && map[x - 1][y + 1] % 16 == 0 && map[x - 1][y + 1] % 16 == 0 && map[x - 1][y - 1] % 16 == 0) {
-
-          if (x < MAP_WIDTH / 2) {
-            map[x][y] = EAST;
-            map[x + 1][y] = EAST | WEST;
-            map[x + 2][y] = ((map[x + 2][y] & ~NORTH) & ~SOUTH) | WEST;
-            map[x + 2][y - 1] = PILL;
-            map[x + 2][y + 1] = PILL;
-            map[x + 2][y - 2] = map[x + 2][y - 2] & ~SOUTH;
-            map[x + 2][y + 2] = map[x + 2][y + 2] & ~NORTH;
-          } else {
-            map[x][y] = WEST;
-            map[x - 1][y] = EAST | WEST;
-            map[x - 2][y] = ((map[x - 2][y] & ~NORTH) & ~SOUTH) | EAST;
-            map[x - 2][y - 1] = PILL;
-            map[x - 2][y + 1] = PILL;
-            map[x - 2][y - 2] = map[x - 2][y - 2] & ~SOUTH;
-            map[x - 2][y + 2] = map[x - 2][y + 2] & ~NORTH;
-          }
-
-          x = 1;
-          y = 1;
-          infiniteCheck++;
-
-        } else {
-
-          map[x][y] = PILL;
-
+      if (map[x][y] == PILL) {
+        if (map[x + 1][y] == PILL && map[x][y + 1] == PILL && map[x - 1][y] == PILL && map[x][y - 1] == PILL &&
+          map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
+          map[x][y] = ISLAND;
         }
       }
     }
-
   }
 
-  let u = floor(MAP_WIDTH / 2);
-  let v = floor(MAP_HEIGHT / 2);
+  // JOIN ISLANDS
 
-  for (let i = -2; i <= 2; i++) {
-    for (let j = -2; j <= 2; j++) {
-      if (abs(i) == 2 || abs(j) == 2) {
-        map[u + i][v + j] = PILL;
-      } else {
-        map[u + i][v + j] = 0;
+  for (let x = 1; x < MAP_WIDTH - 1; x++) {
+    for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+      if (map[x][y] == PILL) {
+        if (map[x + 1][y] == ISLAND && map[x][y + 1] == PILL && map[x - 1][y] == ISLAND && map[x][y - 1] == PILL &&
+          map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
+          map[x][y] = EAST | WEST;
+          map[x + 1][y] = WEST;
+          map[x - 1][y] = EAST;
+        }
+        if (map[x + 1][y] == PILL && map[x][y + 1] == ISLAND && map[x - 1][y] == PILL && map[x][y - 1] == ISLAND &&
+          map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
+          map[x][y] = NORTH | SOUTH;
+          map[x][y + 1] = NORTH;
+          map[x][y - 1] = SOUTH;
+        }
       }
-      
-      map[u + i + 1][v + j] = map[u + i + 1][v + j] & ~WEST;
-      map[u + i - 1][v + j] = map[u + i - 1][v + j] & ~EAST;
-      map[u + i][v + j + 1] = map[u + i][v + j + 1] & ~NORTH;
-      map[u + i][v + j - 1] = map[u + i][v + j - 1] & ~SOUTH;
     }
   }
-
-  if (map[u - 1][v - 3] == 0 && map[u + 1][v - 3] == 0) {
-    map[u - 1][v - 3] = EAST;
-    map[u][v - 3] = EAST | WEST;
-    map[u + 1][v - 3] = WEST;
-  }
-
-  if (map[u - 1][v + 3] == 0 && map[u + 1][v + 3] == 0) {
-    map[u - 1][v + 3] = EAST;
-    map[u][v + 3] = EAST | WEST;
-    map[u + 1][v + 3] = WEST;
-  }
-
 
 }
 
@@ -246,7 +253,7 @@ function keyPressed() {
 
   if (keyCode === LEFT_ARROW) {
     MAP_WIDTH -= 4;
-    if (MAP_WIDTH < 11) MAP_WIDTH = 11;
+    if (MAP_WIDTH < 15) MAP_WIDTH = 15;
     generateMap();
   } else if (keyCode === RIGHT_ARROW) {
     MAP_WIDTH += 4;
@@ -266,12 +273,6 @@ function keyPressed() {
 
 
 
-
-
-
-
-
-
 function draw() {
 
   background(0, 0, 64);
@@ -280,19 +281,38 @@ function draw() {
   let xOffset = windowWidth / 2 - (MAP_WIDTH / 2) * size;
   let yOffset = windowHeight / 2 - ((MAP_HEIGHT - 1) / 2) * size;
 
-  //textSize(14);
-  //fill(255, 255, 255);
-  //textAlign(CENTER, CENTER);
-
   for (let i = 0; i < MAP_WIDTH; i++) {
-    //text(i, (i + 1.5) * size, size / 2)
     for (let j = 0; j < MAP_HEIGHT; j++) {
-      //if (i == 0) text(j, size / 2, (j + 1.5) * size);
 
-      tint(colours[i][j].r, colours[i][j].g, colours[i][j].b);
+      if (map[i][j] == PILL) {
+        
+        tint(255, 255, 0);
+        image(pill, i * size + xOffset, j * size + yOffset, size, size);
+        
+      } else if (map[i][j] == ISLAND) {
+        
+        tint(0, 128, 0);
+        image(walltiles[0], i * size + xOffset, j * size + yOffset, size, size);
 
-      if (map[i][j] > 0) {
-        image(walltiles[map[i][j] % 16], i * size + xOffset, j * size + yOffset, size, size);
+      } else if (map[i][j] > 0 && map[i][j] < 16) {
+        
+        tint(0, 128, 0);
+        image(walltiles[map[i][j]], i * size + xOffset, j * size + yOffset, size, size);
+      
+      } else if (map[i][j] == BASE) {        
+        
+        tint(128, 0, 0);        
+        let b = null;        
+        if (map[i-1][j] != BASE && map[i][j-1] != BASE) b = 0;
+        else if (map[i+1][j] != BASE && map[i][j-1] != BASE) b = 2;
+        else if (map[i+1][j] != BASE && map[i][j+1] != BASE) b = 4;
+        else if (map[i-1][j] != BASE && map[i][j+1] != BASE) b = 6;
+        else if (map[i][j-1] != BASE) b = 1;
+        else if (map[i+1][j] != BASE) b = 3;
+        else if (map[i][j+1] != BASE) b = 5;        
+        else if (map[i-1][j] != BASE) b = 7;      
+        if (b != null) image(basetiles[b], i * size + xOffset, j * size + yOffset, size, size);
+
       } 
 
     }
