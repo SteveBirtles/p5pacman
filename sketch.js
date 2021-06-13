@@ -1,8 +1,5 @@
 "option strict";
 
-let MAP_WIDTH = 27;
-let MAP_HEIGHT = 23;
-
 const NORTH = 0b1;
 const EAST = 0b10;
 const SOUTH = 0b100;
@@ -11,6 +8,8 @@ const ISLAND = 0b10000;
 const PILL = 0b100000;
 const BASE = 0b1000000;
 
+let mapWidth = 27;
+let mapHeight = 23;
 let map;
 let entityMap;
 
@@ -32,8 +31,6 @@ let player;
 let ghosts = [];
 
 let framerateStack = [];
-
-p5.disableFriendlyErrors = true;
 
 function preload() {
 
@@ -60,9 +57,9 @@ function generateMap() {
   // CLEAR MAP
 
   map = [];
-  for (let i = 0; i < MAP_WIDTH; i++) {
+  for (let i = 0; i < mapWidth; i++) {
     row = [];
-    for (let j = 0; j < MAP_HEIGHT; j++) {
+    for (let j = 0; j < mapHeight; j++) {
       row.push(0);
     }
     map.push(row);
@@ -70,34 +67,34 @@ function generateMap() {
 
   // MAP EDGES
 
-  for (let x = 1; x < MAP_WIDTH - 1; x++) {
+  for (let x = 1; x < mapWidth - 1; x++) {
     map[x][0] = SOUTH | EAST | WEST;
-    map[x][MAP_HEIGHT - 1] = NORTH | EAST | WEST;
+    map[x][mapHeight - 1] = NORTH | EAST | WEST;
   }
-  for (let y = 0; y < MAP_HEIGHT - 1; y++) {
+  for (let y = 0; y < mapHeight - 1; y++) {
     map[0][y] = EAST | NORTH | SOUTH;
-    map[MAP_WIDTH - 1][y] = WEST | NORTH | SOUTH;
+    map[mapWidth - 1][y] = WEST | NORTH | SOUTH;
   }
 
   // MAP CORNERS
 
   map[0][0] = EAST | SOUTH;
-  map[MAP_WIDTH - 1][0] = WEST | SOUTH;
-  map[0][MAP_HEIGHT - 1] = EAST | NORTH;
-  map[MAP_WIDTH - 1][MAP_HEIGHT - 1] = WEST | NORTH;
+  map[mapWidth - 1][0] = WEST | SOUTH;
+  map[0][mapHeight - 1] = EAST | NORTH;
+  map[mapWidth - 1][mapHeight - 1] = WEST | NORTH;
 
   // ADD PILLARS EVERY 2 SPACES
 
-  for (let x = 2; x < MAP_WIDTH - 2; x += 2) {
-    for (let y = 2; y < MAP_HEIGHT - 2; y += 2) {
+  for (let x = 2; x < mapWidth - 2; x += 2) {
+    for (let y = 2; y < mapHeight - 2; y += 2) {
       map[x][y] = NORTH | SOUTH | EAST | WEST;
     }
   }
 
   // ADD CENTRAL BASE
 
-  let u = floor(MAP_WIDTH / 2);
-  let v = floor(MAP_HEIGHT / 2);
+  let u = floor(mapWidth / 2);
+  let v = floor(mapHeight / 2);
   for (let i = -1; i <= 1; i++) {
     for (let j = -1; j <= 1; j++) {
       map[u + i][v + j] = BASE;
@@ -106,15 +103,15 @@ function generateMap() {
 
   // ADD RANDOMISED WALLS
 
-  for (let i = 0; i < MAP_WIDTH * MAP_HEIGHT; i++) {
+  for (let i = 0; i < mapWidth * mapHeight; i++) {
 
-    let x = floor(random(1, MAP_WIDTH / 2 - 1));
-    let y = floor(random(1, MAP_HEIGHT - 1));
+    let x = floor(random(1, mapWidth / 2 - 1));
+    let y = floor(random(1, mapHeight - 1));
 
     if (map[x][y] != 0) continue;
 
     map[x][y] = NORTH | SOUTH | EAST | WEST;
-    map[MAP_WIDTH - 1 - x][y] = map[x][y];
+    map[mapWidth - 1 - x][y] = map[x][y];
 
     let invalid = false;
 
@@ -125,9 +122,9 @@ function generateMap() {
         for (let v = -1; v <= 1; v++) {
           if (map[x + u][y + v] != 0) continue;
           let directions = 0;
-          if (x + u < MAP_WIDTH - 1 && map[x + u + 1][y + v] == 0) directions++;
+          if (x + u < mapWidth - 1 && map[x + u + 1][y + v] == 0) directions++;
           if (x + u > 0 && map[x + u - 1][y + v] == 0) directions++;
-          if (y + v < MAP_HEIGHT - 1 && map[x + u][y + v + 1] == 0) directions++;
+          if (y + v < mapHeight - 1 && map[x + u][y + v + 1] == 0) directions++;
           if (y + v > 0 && map[x + u][y + v - 1] == 0) directions++;
           if (directions == 1) {
             invalid = true;
@@ -147,15 +144,15 @@ function generateMap() {
 
     if (invalid) {
       map[x][y] = 0;
-      map[MAP_WIDTH - 1 - x][y] = 0;
+      map[mapWidth - 1 - x][y] = 0;
     }
 
   }
 
   // ADD PILLS, INCLUDING CENTRAL LOOP
 
-  for (let i = 1; i < MAP_WIDTH - 1; i++) {
-    for (let j = 1; j < MAP_HEIGHT - 1; j++) {
+  for (let i = 1; i < mapWidth - 1; i++) {
+    for (let j = 1; j < mapHeight - 1; j++) {
       if (map[i][j] == 0 ||
         abs(u - i) == 2 && abs(v - j) <= 2 ||
         abs(u - i) <= 2 && abs(v - j) == 2) {
@@ -166,12 +163,12 @@ function generateMap() {
 
   // EDGE FIXES
 
-  for (let x = 0; x < MAP_WIDTH; x++) {
-    for (let y = 0; y < MAP_HEIGHT; y++) {
+  for (let x = 0; x < mapWidth; x++) {
+    for (let y = 0; y < mapHeight; y++) {
       if (map[x][y] != 0) {
-        if (x < MAP_WIDTH - 1 && map[x + 1][y] % 16 == 0) map[x][y] = map[x][y] & ~EAST;
+        if (x < mapWidth - 1 && map[x + 1][y] % 16 == 0) map[x][y] = map[x][y] & ~EAST;
         if (x > 0 && map[x - 1][y] % 16 == 0) map[x][y] = map[x][y] & ~WEST;
-        if (y < MAP_HEIGHT - 1 && map[x][y + 1] % 16 == 0) map[x][y] = map[x][y] & ~SOUTH;
+        if (y < mapHeight - 1 && map[x][y + 1] % 16 == 0) map[x][y] = map[x][y] & ~SOUTH;
         if (y > 0 && map[x][y - 1] % 16 == 0) map[x][y] = map[x][y] & ~NORTH;
         if (map[x][y] == 0) map[x][y] = ISLAND;
       }
@@ -180,8 +177,8 @@ function generateMap() {
 
   // CREATE ISLANDS
 
-  for (let x = 1; x < MAP_WIDTH - 1; x++) {
-    for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+  for (let x = 1; x < mapWidth - 1; x++) {
+    for (let y = 1; y < mapHeight - 1; y++) {
       if (map[x][y] == PILL) {
         if (map[x + 1][y] == PILL && map[x][y + 1] == PILL && map[x - 1][y] == PILL && map[x][y - 1] == PILL &&
           map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
@@ -193,8 +190,8 @@ function generateMap() {
 
   // JOIN ISLANDS
 
-  for (let x = 1; x < MAP_WIDTH - 1; x++) {
-    for (let y = 1; y < MAP_HEIGHT - 1; y++) {
+  for (let x = 1; x < mapWidth - 1; x++) {
+    for (let y = 1; y < mapHeight - 1; y++) {
       if (map[x][y] == PILL) {
         if (map[x + 1][y] == ISLAND && map[x][y + 1] == PILL && map[x - 1][y] == ISLAND && map[x][y - 1] == PILL &&
           map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
@@ -229,9 +226,9 @@ function traverse(x, y, history = null) {
 
   if (history == null) {
     history = [];
-    for (let i = 0; i < MAP_WIDTH; i++) {
+    for (let i = 0; i < mapWidth; i++) {
       row = [];
-      for (let j = 0; j < MAP_HEIGHT; j++) {
+      for (let j = 0; j < mapHeight; j++) {
         row.push(false);
       }
       history.push(row);
@@ -242,15 +239,15 @@ function traverse(x, y, history = null) {
 
   if (x > 0 && map[x - 1][y] == 0 && !history[x - 1][y]) traverse(x - 1, y, history);
   if (y > 0 && map[x][y - 1] == 0 && !history[x][y - 1]) traverse(x, y - 1, history);
-  if (x < MAP_WIDTH - 1 && map[x + 1][y] == 0 && !history[x + 1][y]) traverse(x + 1, y, history);
-  if (y < MAP_HEIGHT - 1 && map[x][y + 1] == 0 && !history[x][y + 1]) traverse(x, y + 1, history);
+  if (x < mapWidth - 1 && map[x + 1][y] == 0 && !history[x + 1][y]) traverse(x + 1, y, history);
+  if (y < mapHeight - 1 && map[x][y + 1] == 0 && !history[x][y + 1]) traverse(x, y + 1, history);
 
   if (final) {
 
     let traversedCount = 0;
     let totalCount = 0;
-    for (let x = 0; x < MAP_WIDTH; x++) {
-      for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < mapWidth; x++) {
+      for (let y = 0; y < mapHeight; y++) {
         if (map[x][y] == 0) {
           totalCount++;
           if (history[x][y]) traversedCount++;
@@ -268,12 +265,12 @@ function generateGhosts() {
 
   ghosts = [];
 
-  for (let z = 0; z < floor(MAP_WIDTH * MAP_HEIGHT) / 40 + 1; z++) {
+  for (let z = 0; z < floor(mapWidth * mapHeight) / 40 + 1; z++) {
 
     let x, y;
     do {
-      x = floor(random(1, MAP_WIDTH - 1));
-      y = floor(random(1, MAP_HEIGHT - 1));
+      x = floor(random(1, mapWidth - 1));
+      y = floor(random(1, mapHeight - 1));
     } while (map[x][y] != PILL ||
       abs(x - player.position.x) < 4 &&
       abs(y - player.position.y) < 4);
@@ -288,14 +285,13 @@ function generateGhosts() {
       }
     } while (map[x + dx][y + dy] != PILL);
 
+    let t = floor(random(1, 4));
+
     let r, g, b;
-    switch (floor(random(0, 6))) {
-      case 0: r = 255; g = 0; b = 0; break;
-      case 1: r = 255; g = 128; b = 0; break;
-      case 2: r = 255; g = 255; b = 0; break;
-      case 3: r = 0; g = 255; b = 0; break;
-      case 4: r = 0; g = 255; b = 255; break;
-      case 5: r = 0; g = 0; b = 255; break;
+    switch (t) {
+      case 1: r = 0; g = 255; b = 255; break;
+      case 2: r = 255; g = 128; b = 0; break;
+      case 3: r = 255; g = 0; b = 255; break;
     }
 
     let img = createImage(whiteghost.width, whiteghost.height);
@@ -313,15 +309,12 @@ function generateGhosts() {
     ghosts.push({
       image: img,
       position: createVector(x, y),
-      target: createVector(
-        x + (d == EAST ? 1 : (d == WEST ? -1 : 0)),
-        y + (d == SOUTH ? 1 : (d == NORTH ? -1 : 0))
-      ),
+      target: createVector(x + dx, y + dy),
       progress: 0,
       speed: 3,
       direction: d,
       nextDirection: d,
-      directionChangeBehaviour: floor(random(1, 4))
+      directionChangeBehaviour: t
     });
 
   }
@@ -335,6 +328,8 @@ function windowResized() {
 }
 
 function setup() {
+
+  p5.disableFriendlyErrors = true;
 
   createCanvas(windowWidth, windowHeight, P2D);
 
@@ -388,21 +383,21 @@ function keyPressed() {
 
   if (keyIsDown(CONTROL)) {
     if (keyCode === LEFT_ARROW) {
-      MAP_WIDTH -= 4;
-      if (MAP_WIDTH < 15) MAP_WIDTH = 15;
+      mapWidth -= 4;
+      if (mapWidth < 15) mapWidth = 15;
       generateMap();
       generateGhosts();
     } else if (keyCode === RIGHT_ARROW) {
-      MAP_WIDTH += 4;
+      mapWidth += 4;
       generateMap();
       generateGhosts();
     } else if (keyCode === UP_ARROW) {
-      MAP_HEIGHT -= 4;
-      if (MAP_HEIGHT < 11) MAP_HEIGHT = 11;
+      mapHeight -= 4;
+      if (mapHeight < 11) mapHeight = 11;
       generateMap();
       generateGhosts();
     } else if (keyCode === DOWN_ARROW) {
-      MAP_HEIGHT += 4;
+      mapHeight += 4;
       generateMap();
       generateGhosts();
     } else if (keyCode == 32) {
@@ -421,7 +416,7 @@ function processEntity(entity) {
     entity.position.x = entity.target.x;
     entity.position.y = entity.target.y;
 
-    if (entity.target.x > 0 && entity.target.x < MAP_WIDTH - 1 && entity.target.y > 0 && entity.target.y < MAP_HEIGHT - 1) {
+    if (entity.target.x > 0 && entity.target.x < mapWidth - 1 && entity.target.y > 0 && entity.target.y < mapHeight - 1) {
 
       if (entity === player && map[entity.target.x][entity.target.y] == PILL) {
         map[entity.target.x][entity.target.y] = 0;
@@ -548,7 +543,7 @@ function draw() {
   /* INPUTS */
 
   if (!keyIsDown(CONTROL)) {
-    if (player.target.x > 0 && player.target.x < MAP_WIDTH - 1 && player.target.y > 0 && player.target.y < MAP_HEIGHT - 1) {
+    if (player.target.x > 0 && player.target.x < mapWidth - 1 && player.target.y > 0 && player.target.y < mapHeight - 1) {
       if (keyIsDown(LEFT_ARROW) && (map[player.target.x - 1][player.target.y] == 0 || map[player.target.x - 1][player.target.y] == PILL)) {
         player.nextDirection = WEST;
       } else if (keyIsDown(RIGHT_ARROW) && (map[player.target.x + 1][player.target.y] == 0 || map[player.target.x + 1][player.target.y] == PILL)) {
@@ -564,9 +559,9 @@ function draw() {
   /* PROCESSES */
 
   entityMap = [];
-  for (let i = 0; i < MAP_WIDTH; i++) {
+  for (let i = 0; i < mapWidth; i++) {
     row = [];
-    for (let j = 0; j < MAP_HEIGHT; j++) {
+    for (let j = 0; j < mapHeight; j++) {
       row.push(0);
     }
     entityMap.push(row);
@@ -591,12 +586,12 @@ function draw() {
 
   background(palette.background.r, palette.background.g, palette.background.b);
 
-  let size = floor(min(windowWidth / MAP_WIDTH, windowHeight / (MAP_HEIGHT + 1)));
-  let xOffset = windowWidth / 2 - (MAP_WIDTH / 2) * size;
-  let yOffset = windowHeight / 2 - ((MAP_HEIGHT - 1) / 2) * size;
+  let size = floor(min(windowWidth / mapWidth, windowHeight / (mapHeight + 1)));
+  let xOffset = windowWidth / 2 - (mapWidth / 2) * size;
+  let yOffset = windowHeight / 2 - ((mapHeight - 1) / 2) * size;
 
-  for (let i = 0; i < MAP_WIDTH; i++) {
-    for (let j = 0; j < MAP_HEIGHT; j++) {
+  for (let i = 0; i < mapWidth; i++) {
+    for (let j = 0; j < mapHeight; j++) {
 
       if (map[i][j] == ISLAND) {
 
@@ -648,7 +643,14 @@ function draw() {
   pop();
 
   for (let ghost of ghosts) {
+    
+    push();
+    imageMode(CENTER);
+    
     let ghostPosition = p5.Vector.lerp(ghost.position, ghost.target, ghost.progress);
+    translate((ghostPosition.x + 0.5) * size + xOffset, (ghostPosition.y + 0.5) * size + yOffset);
+    image(ghost.image, 0, 0, size, size);
+    
     let ghostEyes;
     switch (ghost.direction) {
       case NORTH: ghostEyes = createVector(0, -size / 8); break;
@@ -656,14 +658,15 @@ function draw() {
       case SOUTH: ghostEyes = createVector(0, size / 8); break;
       case WEST: ghostEyes = createVector(-size / 8, 0); break;
     }
-    push();
-    imageMode(CENTER);
-    translate((ghostPosition.x + 0.5) * size + xOffset, (ghostPosition.y + 0.5) * size + yOffset);
-    image(ghost.image, 0, 0, size, size);
+    fill(255, 255, 255);
+    ellipse(-size / 5, -size / 8, size / 3, size / 2);
+    ellipse(size / 5, -size / 8, size / 3, size / 2);
     fill(0, 0, 0);
     ellipse(-size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
     ellipse(size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
+
     pop();
+    
   }
 
   textAlign(LEFT, TOP);
