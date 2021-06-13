@@ -12,6 +12,7 @@ const PILL = 0b100000;
 const BASE = 0b1000000;
 
 let map;
+let entityMap;
 
 let pilltile;
 let walltiles = [];
@@ -217,7 +218,8 @@ function generateMap() {
     progress: 0,
     speed: 5,
     direction: EAST,
-    nextDirection: EAST
+    nextDirection: EAST,
+    directionChangeBehaviour: null
   }
 }
 
@@ -257,6 +259,70 @@ function traverse(x, y, history = null) {
     }
 
     return traversedCount / totalCount;
+
+  }
+
+}
+
+function generateGhosts() {
+
+  ghosts = [];
+
+  for (let z = 0; z < floor(MAP_WIDTH * MAP_HEIGHT) / 40 + 1; z++) {
+
+    let x, y;
+    do {
+      x = floor(random(1, MAP_WIDTH - 1));
+      y = floor(random(1, MAP_HEIGHT - 1));
+    } while (map[x][y] != PILL ||
+      abs(x - player.position.x) < 4 &&
+      abs(y - player.position.y) < 4);
+
+    let d, dx, dy;
+    do {
+      switch (floor(random(0, 4))) {
+        case 0: d = NORTH; dx = 0; dy = -1; break;
+        case 1: d = EAST; dx = 1; dy = 0; break;
+        case 2: d = SOUTH; dx = 0; dy = 1; break;
+        case 3: d = WEST; dx = -1; dy = 0; break;
+      }
+    } while (map[x + dx][y + dy] != PILL);
+
+    let r, g, b;
+    switch (floor(random(0, 6))) {
+      case 0: r = 255; g = 0; b = 0; break;
+      case 1: r = 255; g = 128; b = 0; break;
+      case 2: r = 255; g = 255; b = 0; break;
+      case 3: r = 0; g = 255; b = 0; break;
+      case 4: r = 0; g = 255; b = 255; break;
+      case 5: r = 0; g = 0; b = 255; break;
+    }
+
+    let img = createImage(whiteghost.width, whiteghost.height);
+    img.copy(whiteghost,
+      0, 0, whiteghost.width, whiteghost.height,
+      0, 0, whiteghost.width, whiteghost.height);
+    img.loadPixels();
+    for (let i = 0; i < 4 * img.width * img.height; i += 4) {
+      img.pixels[i] = whiteghost.pixels[i] * r / 256;
+      img.pixels[i + 1] = whiteghost.pixels[i + 1] * g / 256;
+      img.pixels[i + 2] = whiteghost.pixels[i + 2] * b / 256;
+    }
+    img.updatePixels();
+
+    ghosts.push({
+      image: img,
+      position: createVector(x, y),
+      target: createVector(
+        x + (d == EAST ? 1 : (d == WEST ? -1 : 0)),
+        y + (d == SOUTH ? 1 : (d == NORTH ? -1 : 0))
+      ),
+      progress: 0,
+      speed: 3,
+      direction: d,
+      nextDirection: d,
+      directionChangeBehaviour: floor(random(1, 4))
+    });
 
   }
 
@@ -313,63 +379,8 @@ function setup() {
   }
 
   generateMap();
+  generateGhosts();
 
-  for (let z = 0; z < 12; z++) {
-
-    let x, y;
-    do {
-      x = floor(random(1, MAP_WIDTH - 1));
-      y = floor(random(1, MAP_WIDTH - 1));
-    } while (map[x][y] != PILL ||
-      abs(x - player.position.x) < 4 &&
-      abs(y - player.position.y) < 4);
-
-    let d, dx, dy;
-    do {
-      switch (floor(random(0, 4))) {
-        case 0: d = NORTH; dx = 0; dy = -1; break;
-        case 1: d = EAST; dx = 1; dy = 0; break;
-        case 2: d = SOUTH; dx = 0; dy = 1; break;
-        case 3: d = WEST; dx = -1; dy = 0; break;
-      }
-    } while (map[x + dx][y + dy] != PILL);
-
-    let r, g, b;
-    switch (floor(random(0, 6))) {
-      case 0: r = 255; g = 0; b = 0; break;
-      case 1: r = 255; g = 128; b = 0; break;
-      case 2: r = 255; g = 255; b = 0; break;
-      case 3: r = 0; g = 255; b = 0; break;
-      case 4: r = 0; g = 255; b = 255; break;
-      case 5: r = 0; g = 0; b = 255; break;
-    }
-
-    let img = createImage(whiteghost.width, whiteghost.height);
-    img.copy(whiteghost,
-      0, 0, whiteghost.width, whiteghost.height,
-      0, 0, whiteghost.width, whiteghost.height);
-    img.loadPixels();
-    for (let i = 0; i < 4 * img.width * img.height; i += 4) {
-      img.pixels[i] = whiteghost.pixels[i] * r / 256;
-      img.pixels[i + 1] = whiteghost.pixels[i + 1] * g / 256;
-      img.pixels[i + 2] = whiteghost.pixels[i + 2] * b / 256;
-    }
-    img.updatePixels();
-
-    ghosts.push({
-      image: img,
-      position: createVector(x, y),
-      target: createVector(
-        x + (d == EAST ? 1 : (d == WEST ? -1 : 0)),
-        y + (d == SOUTH ? 1 : (d == NORTH ? -1 : 0))
-      ),
-      progress: 0,
-      speed: 3,
-      direction: d,
-      nextDirection: d
-    });
-
-  }
 }
 
 
@@ -380,22 +391,151 @@ function keyPressed() {
       MAP_WIDTH -= 4;
       if (MAP_WIDTH < 15) MAP_WIDTH = 15;
       generateMap();
+      generateGhosts();
     } else if (keyCode === RIGHT_ARROW) {
       MAP_WIDTH += 4;
       generateMap();
+      generateGhosts();
     } else if (keyCode === UP_ARROW) {
       MAP_HEIGHT -= 4;
       if (MAP_HEIGHT < 11) MAP_HEIGHT = 11;
       generateMap();
+      generateGhosts();
     } else if (keyCode === DOWN_ARROW) {
       MAP_HEIGHT += 4;
       generateMap();
+      generateGhosts();
     } else if (keyCode == 32) {
       generateMap();
+      generateGhosts();
     }
   }
 
 }
+
+function processEntity(entity) {
+
+  entity.progress += entity.speed * (deltaTime / 1000);
+  if (entity.progress >= 1) {
+    entity.progress -= 1;
+    entity.position.x = entity.target.x;
+    entity.position.y = entity.target.y;
+
+    if (entity.target.x > 0 && entity.target.x < MAP_WIDTH - 1 && entity.target.y > 0 && entity.target.y < MAP_HEIGHT - 1) {
+
+      if (entity === player && map[entity.target.x][entity.target.y] == PILL) {
+        map[entity.target.x][entity.target.y] = 0;
+      }
+
+      let directionChange = false;
+
+      let northClear = (map[entity.target.x][entity.target.y - 1] == 0 || map[entity.target.x][entity.target.y - 1] == PILL) &&
+        !entityMap[entity.target.x][entity.target.y - 1];
+      let eastClear = (map[entity.target.x + 1][entity.target.y] == 0 || map[entity.target.x + 1][entity.target.y] == PILL) &&
+        !entityMap[entity.target.x + 1][entity.target.y];
+      let southClear = (map[entity.target.x][entity.target.y + 1] == 0 || map[entity.target.x][entity.target.y + 1] == PILL) &&
+        !entityMap[entity.target.x][entity.target.y + 1];
+      let westClear = (map[entity.target.x - 1][entity.target.y] == 0 || map[entity.target.x - 1][entity.target.y] == PILL) &&
+        !entityMap[entity.target.x - 1][entity.target.y];
+
+      if (entity.directionChangeBehaviour != null && (entity.nextDirection == NORTH & !northClear ||
+        entity.nextDirection == EAST & !eastClear ||
+        entity.nextDirection == SOUTH & !southClear ||
+        entity.nextDirection == WEST & !westClear)) {
+        directionChange = true;
+      }
+
+      if (entity.directionChangeBehaviour == 2 || entity.directionChangeBehaviour == 3) {
+        let paths = (northClear ? 1 : 0) + (eastClear ? 1 : 0) + (southClear ? 1 : 0) + (westClear ? 1 : 0);
+        if (paths > 2) {
+          directionChange = true;
+        }
+      }
+
+      if (directionChange && entity.directionChangeBehaviour !== null) {
+        if (entity.directionChangeBehaviour <= 3) {
+
+          let d, dx, dy, oneeighty = false, tries = 0;
+          do {
+
+            tries++;
+
+            if (tries >= 30) {
+              northClear = false;
+              eastClear = false;
+              southClear = false;
+              westClear = false;
+              break;
+            }
+
+            switch (floor(random(0, 4))) {
+              case 0: d = NORTH; dx = 0; dy = -1; break;
+              case 1: d = EAST; dx = 1; dy = 0; break;
+              case 2: d = SOUTH; dx = 0; dy = 1; break;
+              case 3: d = WEST; dx = -1; dy = 0; break;
+            }
+
+            if (entity.directionChangeBehaviour == 3) {
+              if (tries <= 15) {
+                oneeighty =
+                  d == NORTH && entity.nextDirection == SOUTH ||
+                  d == EAST && entity.nextDirection == WEST ||
+                  d == SOUTH && entity.nextDirection == NORTH ||
+                  d == WEST && entity.nextDirection == EAST;
+              } else {
+                oneeighty = false;
+              }
+            }
+
+          } while (oneeighty || !(map[entity.position.x + dx][entity.position.y + dy] == PILL ||
+            map[entity.position.x + dx][entity.position.y + dy] == 0) || entityMap[entity.target.x + dx][entity.target.y + dy]);
+
+          entity.progress = 0;
+          entity.nextDirection = d;
+        }
+      }
+
+      if (entity.nextDirection == NORTH) {
+        if (northClear) {
+          entity.target.y--;
+          entity.direction = entity.nextDirection;
+        } else {
+          entity.progress = 1;
+          entity.nextDirection = entity.direction;
+        }
+      } else if (entity.nextDirection == EAST) {
+        if (eastClear) {
+          entity.target.x++;
+          entity.direction = entity.nextDirection;
+        } else {
+          entity.progress = 1;
+          entity.nextDirection = entity.direction;
+        }
+      } else if (entity.nextDirection == SOUTH) {
+        if (southClear) {
+          entity.target.y++;
+          entity.direction = entity.nextDirection;
+        } else {
+          entity.progress = 1;
+          entity.nextDirection = entity.direction;
+        }
+      } else if (entity.nextDirection == WEST) {
+        if (westClear) {
+          entity.target.x--;
+          entity.direction = entity.nextDirection;
+        } else {
+          entity.progress = 1;
+          entity.nextDirection = entity.direction;
+        }
+      }
+
+    }
+
+  }
+}
+
+
+
 
 function draw() {
 
@@ -423,46 +563,28 @@ function draw() {
 
   /* PROCESSES */
 
-  player.progress += player.speed * (deltaTime / 1000);
-  if (player.progress >= 1) {
-    player.progress -= 1;
-    player.position.x = player.target.x;
-    player.position.y = player.target.y;
-    if (player.target.x > 0 && player.target.x < MAP_WIDTH - 1 && player.target.y > 0 && player.target.y < MAP_HEIGHT - 1) {
-      if (map[player.target.x][player.target.y] == PILL) {
-        map[player.target.x][player.target.y] = 0;
-      }
-      if (player.nextDirection == NORTH) {
-        if (map[player.target.x][player.target.y - 1] == 0 || map[player.target.x][player.target.y - 1] == PILL) {
-          player.target.y--;
-          player.direction = player.nextDirection;
-        } else {
-          player.progress = 1;
-          player.nextDirection = player.direction;
-        }
-      } else if (player.nextDirection == EAST) {
-        if (map[player.target.x + 1][player.target.y] == 0 || map[player.target.x + 1][player.target.y] == PILL) {
-          player.target.x++;
-          player.direction = player.nextDirection;
-        } else {
-          player.progress = 1;
-        }
-      } else if (player.nextDirection == SOUTH) {
-        if (map[player.target.x][player.target.y + 1] == 0 || map[player.target.x][player.target.y + 1] == PILL) {
-          player.target.y++;
-          player.direction = player.nextDirection;
-        } else {
-          player.progress = 1;
-        }
-      } else if (player.nextDirection == WEST) {
-        if (map[player.target.x - 1][player.target.y] == 0 || map[player.target.x - 1][player.target.y] == PILL) {
-          player.target.x--;
-          player.direction = player.nextDirection;
-        } else {
-          player.progress = 1;
-        }
-      }
+  entityMap = [];
+  for (let i = 0; i < MAP_WIDTH; i++) {
+    row = [];
+    for (let j = 0; j < MAP_HEIGHT; j++) {
+      row.push(0);
     }
+    entityMap.push(row);
+  }
+
+  processEntity(player);
+
+  for (let ghost of ghosts) {
+    entityMap[ghost.position.x][ghost.position.y] = true;
+    entityMap[ghost.target.x][ghost.target.y] = true;
+  }
+
+  for (let ghost of ghosts) {
+    entityMap[ghost.position.x][ghost.position.y] = false;
+    entityMap[ghost.target.x][ghost.target.y] = false;
+    processEntity(ghost);
+    entityMap[ghost.position.x][ghost.position.y] = true;
+    entityMap[ghost.target.x][ghost.target.y] = true;
   }
 
   /* OUTPUTS */
@@ -526,10 +648,17 @@ function draw() {
   pop();
 
   for (let ghost of ghosts) {
-    let ghostEyes = createVector(0, -size / 8);
+    let ghostPosition = p5.Vector.lerp(ghost.position, ghost.target, ghost.progress);
+    let ghostEyes;
+    switch (ghost.direction) {
+      case NORTH: ghostEyes = createVector(0, -size / 8); break;
+      case EAST: ghostEyes = createVector(size / 8, 0); break;
+      case SOUTH: ghostEyes = createVector(0, size / 8); break;
+      case WEST: ghostEyes = createVector(-size / 8, 0); break;
+    }
     push();
     imageMode(CENTER);
-    translate((ghost.position.x + 0.5) * size + xOffset, (ghost.position.y + 0.5) * size + yOffset);
+    translate((ghostPosition.x + 0.5) * size + xOffset, (ghostPosition.y + 0.5) * size + yOffset);
     image(ghost.image, 0, 0, size, size);
     fill(0, 0, 0);
     ellipse(-size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
