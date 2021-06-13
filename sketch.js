@@ -17,6 +17,7 @@ let pilltile;
 let walltiles = [];
 let basetiles = [];
 let pacmans = [];
+let whiteghost;
 
 let palette = {
   background: { r: 0, g: 0, b: 64 },
@@ -27,6 +28,7 @@ let palette = {
 };
 
 let player;
+let ghosts = [];
 
 let framerateStack = [];
 
@@ -47,6 +49,8 @@ function preload() {
   for (let i = 0; i < 4; i++) {
     pacmans.push(loadImage("gfx/pacman" + i + ".png"));
   }
+
+  whiteghost = loadImage("gfx/ghost.png");
 
 }
 
@@ -208,14 +212,12 @@ function generateMap() {
   }
 
   player = {
-    x: 1,
-    y: 1,
-    targetX: 2,
-    targetY: 1,
-    direction: EAST,
-    nextDirection: EAST,
+    position: createVector(1, 1),
+    target: createVector(2, 1),
     progress: 0,
-    speed: 5
+    speed: 5,
+    direction: EAST,
+    nextDirection: EAST
   }
 }
 
@@ -312,7 +314,64 @@ function setup() {
 
   generateMap();
 
+  for (let z = 0; z < 12; z++) {
+
+    let x, y;
+    do {
+      x = floor(random(1, MAP_WIDTH - 1));
+      y = floor(random(1, MAP_WIDTH - 1));
+    } while (map[x][y] != PILL ||
+      abs(x - player.position.x) < 4 &&
+      abs(y - player.position.y) < 4);
+
+    let d, dx, dy;
+    do {
+      switch (floor(random(0, 4))) {
+        case 0: d = NORTH; dx = 0; dy = -1; break;
+        case 1: d = EAST; dx = 1; dy = 0; break;
+        case 2: d = SOUTH; dx = 0; dy = 1; break;
+        case 3: d = WEST; dx = -1; dy = 0; break;
+      }
+    } while (map[x + dx][y + dy] != PILL);
+
+    let r, g, b;
+    switch (floor(random(0, 6))) {
+      case 0: r = 255; g = 0; b = 0; break;
+      case 1: r = 255; g = 128; b = 0; break;
+      case 2: r = 255; g = 255; b = 0; break;
+      case 3: r = 0; g = 255; b = 0; break;
+      case 4: r = 0; g = 255; b = 255; break;
+      case 5: r = 0; g = 0; b = 255; break;
+    }
+
+    let img = createImage(whiteghost.width, whiteghost.height);
+    img.copy(whiteghost,
+      0, 0, whiteghost.width, whiteghost.height,
+      0, 0, whiteghost.width, whiteghost.height);
+    img.loadPixels();
+    for (let i = 0; i < 4 * img.width * img.height; i += 4) {
+      img.pixels[i] = whiteghost.pixels[i] * r / 256;
+      img.pixels[i + 1] = whiteghost.pixels[i + 1] * g / 256;
+      img.pixels[i + 2] = whiteghost.pixels[i + 2] * b / 256;
+    }
+    img.updatePixels();
+
+    ghosts.push({
+      image: img,
+      position: createVector(x, y),
+      target: createVector(
+        x + (d == EAST ? 1 : (d == WEST ? -1 : 0)),
+        y + (d == SOUTH ? 1 : (d == NORTH ? -1 : 0))
+      ),
+      progress: 0,
+      speed: 3,
+      direction: d,
+      nextDirection: d
+    });
+
+  }
 }
+
 
 function keyPressed() {
 
@@ -349,14 +408,14 @@ function draw() {
   /* INPUTS */
 
   if (!keyIsDown(CONTROL)) {
-    if (player.targetX > 0 && player.targetX < MAP_WIDTH - 1 && player.targetY > 0 && player.targetY < MAP_HEIGHT - 1) {
-      if (keyIsDown(LEFT_ARROW) && (map[player.targetX - 1][player.targetY] == 0 || map[player.targetX - 1][player.targetY] == PILL)) {
+    if (player.target.x > 0 && player.target.x < MAP_WIDTH - 1 && player.target.y > 0 && player.target.y < MAP_HEIGHT - 1) {
+      if (keyIsDown(LEFT_ARROW) && (map[player.target.x - 1][player.target.y] == 0 || map[player.target.x - 1][player.target.y] == PILL)) {
         player.nextDirection = WEST;
-      } else if (keyIsDown(RIGHT_ARROW) && (map[player.targetX + 1][player.targetY] == 0 || map[player.targetX + 1][player.targetY] == PILL)) {
+      } else if (keyIsDown(RIGHT_ARROW) && (map[player.target.x + 1][player.target.y] == 0 || map[player.target.x + 1][player.target.y] == PILL)) {
         player.nextDirection = EAST;
-      } else if (keyIsDown(UP_ARROW) && (map[player.targetX][player.targetY - 1] == 0 || map[player.targetX][player.targetY - 1] == PILL)) {
+      } else if (keyIsDown(UP_ARROW) && (map[player.target.x][player.target.y - 1] == 0 || map[player.target.x][player.target.y - 1] == PILL)) {
         player.nextDirection = NORTH;
-      } else if (keyIsDown(DOWN_ARROW) && (map[player.targetX][player.targetY + 1] == 0 || map[player.targetX][player.targetY + 1] == PILL)) {
+      } else if (keyIsDown(DOWN_ARROW) && (map[player.target.x][player.target.y + 1] == 0 || map[player.target.x][player.target.y + 1] == PILL)) {
         player.nextDirection = SOUTH;
       }
     }
@@ -367,37 +426,37 @@ function draw() {
   player.progress += player.speed * (deltaTime / 1000);
   if (player.progress >= 1) {
     player.progress -= 1;
-    player.x = player.targetX;
-    player.y = player.targetY;
-    if (player.targetX > 0 && player.targetX < MAP_WIDTH - 1 && player.targetY > 0 && player.targetY < MAP_HEIGHT - 1) {
-      if (map[player.targetX][player.targetY] == PILL) {
-        map[player.targetX][player.targetY] = 0;
+    player.position.x = player.target.x;
+    player.position.y = player.target.y;
+    if (player.target.x > 0 && player.target.x < MAP_WIDTH - 1 && player.target.y > 0 && player.target.y < MAP_HEIGHT - 1) {
+      if (map[player.target.x][player.target.y] == PILL) {
+        map[player.target.x][player.target.y] = 0;
       }
       if (player.nextDirection == NORTH) {
-        if (map[player.targetX][player.targetY - 1] == 0 || map[player.targetX][player.targetY - 1] == PILL) {
-          player.targetY--;
+        if (map[player.target.x][player.target.y - 1] == 0 || map[player.target.x][player.target.y - 1] == PILL) {
+          player.target.y--;
           player.direction = player.nextDirection;
         } else {
           player.progress = 1;
           player.nextDirection = player.direction;
         }
       } else if (player.nextDirection == EAST) {
-        if (map[player.targetX + 1][player.targetY] == 0 || map[player.targetX + 1][player.targetY] == PILL) {
-          player.targetX++;
+        if (map[player.target.x + 1][player.target.y] == 0 || map[player.target.x + 1][player.target.y] == PILL) {
+          player.target.x++;
           player.direction = player.nextDirection;
         } else {
           player.progress = 1;
         }
       } else if (player.nextDirection == SOUTH) {
-        if (map[player.targetX][player.targetY + 1] == 0 || map[player.targetX][player.targetY + 1] == PILL) {
-          player.targetY++;
+        if (map[player.target.x][player.target.y + 1] == 0 || map[player.target.x][player.target.y + 1] == PILL) {
+          player.target.y++;
           player.direction = player.nextDirection;
         } else {
           player.progress = 1;
         }
       } else if (player.nextDirection == WEST) {
-        if (map[player.targetX - 1][player.targetY] == 0 || map[player.targetX - 1][player.targetY] == PILL) {
-          player.targetX--;
+        if (map[player.target.x - 1][player.target.y] == 0 || map[player.target.x - 1][player.target.y] == PILL) {
+          player.target.x--;
           player.direction = player.nextDirection;
         } else {
           player.progress = 1;
@@ -451,11 +510,11 @@ function draw() {
 
   let pacmanFrame = floor(2 + 2 * sin(frameCount / 3));
 
-  let x = player.x + player.progress * (player.targetX - player.x) + 0.5;
-  let y = player.y + player.progress * (player.targetY - player.y) + 0.5;
+  let pacmanPosition = p5.Vector.lerp(player.position, player.target, player.progress);
 
   push();
-  translate(x * size + xOffset, y * size + yOffset);
+  imageMode(CENTER);
+  translate((pacmanPosition.x + 0.5) * size + xOffset, (pacmanPosition.y + 0.5) * size + yOffset);
   if (player.direction == NORTH) {
     rotate(HALF_PI);
   } else if (player.direction == EAST) {
@@ -463,13 +522,24 @@ function draw() {
   } else if (player.direction == SOUTH) {
     rotate(PI + HALF_PI);
   }
-  image(pacmans[pacmanFrame], -size / 2, -size / 2, size, size);
+  image(pacmans[pacmanFrame], 0, 0, size, size);
   pop();
+
+  for (let ghost of ghosts) {
+    let ghostEyes = createVector(0, -size / 8);
+    push();
+    imageMode(CENTER);
+    translate((ghost.position.x + 0.5) * size + xOffset, (ghost.position.y + 0.5) * size + yOffset);
+    image(ghost.image, 0, 0, size, size);
+    fill(0, 0, 0);
+    ellipse(-size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
+    ellipse(size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
+    pop();
+  }
 
   textAlign(LEFT, TOP);
   textSize(18);
   fill(255, 255, 255);
   text(floor(averageFPS) + " FPS", 10, 10);
-  text("Player: " + player.x + ", " + player.y, 10, 30);
 
 }
