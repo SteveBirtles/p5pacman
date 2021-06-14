@@ -68,7 +68,7 @@ function preload() {  /* P5 DEFINED FUNCTION */
 
 function generateMap() {
 
-    let traverse = (x, y, history = null) => {
+    const traverse = (x, y, history = null) => {
 
         let final = history === null;
 
