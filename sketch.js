@@ -72,7 +72,7 @@ function generateMap() {
 
         let final = history === null;
 
-        if (history == null) {
+        if (history === null) {
             history = [];
             for (let i = 0; i < mapWidth; i++) {
                 row = [];
@@ -85,10 +85,10 @@ function generateMap() {
 
         history[x][y] = true;
 
-        if (x > 0 && map[x - 1][y] == 0 && !history[x - 1][y]) traverse(x - 1, y, history);
-        if (y > 0 && map[x][y - 1] == 0 && !history[x][y - 1]) traverse(x, y - 1, history);
-        if (x < mapWidth - 1 && map[x + 1][y] == 0 && !history[x + 1][y]) traverse(x + 1, y, history);
-        if (y < mapHeight - 1 && map[x][y + 1] == 0 && !history[x][y + 1]) traverse(x, y + 1, history);
+        if (x > 0 && map[x - 1][y] === 0 && !history[x - 1][y]) traverse(x - 1, y, history);
+        if (y > 0 && map[x][y - 1] === 0 && !history[x][y - 1]) traverse(x, y - 1, history);
+        if (x < mapWidth - 1 && map[x + 1][y] === 0 && !history[x + 1][y]) traverse(x + 1, y, history);
+        if (y < mapHeight - 1 && map[x][y + 1] === 0 && !history[x][y + 1]) traverse(x, y + 1, history);
 
         if (final) {
 
@@ -96,7 +96,7 @@ function generateMap() {
             let totalCount = 0;
             for (let x = 0; x < mapWidth; x++) {
                 for (let y = 0; y < mapHeight; y++) {
-                    if (map[x][y] == 0) {
+                    if (map[x][y] === 0) {
                         totalCount++;
                         if (history[x][y]) traversedCount++;
                     }
@@ -163,7 +163,7 @@ function generateMap() {
         let x = floor(random(1, mapWidth / 2 - 1));
         let y = floor(random(1, mapHeight - 1));
 
-        if (map[x][y] != 0) continue;
+        if (map[x][y] !== 0) continue;
 
         map[x][y] = NORTH | SOUTH | EAST | WEST;
         map[mapWidth - 1 - x][y] = map[x][y];
@@ -175,13 +175,13 @@ function generateMap() {
         if (!invalid) {
             for (let u = -1; u <= 1; u++) {
                 for (let v = -1; v <= 1; v++) {
-                    if (map[x + u][y + v] != 0) continue;
+                    if (map[x + u][y + v] !== 0) continue;
                     let directions = 0;
-                    if (x + u < mapWidth - 1 && map[x + u + 1][y + v] == 0) directions++;
-                    if (x + u > 0 && map[x + u - 1][y + v] == 0) directions++;
-                    if (y + v < mapHeight - 1 && map[x + u][y + v + 1] == 0) directions++;
-                    if (y + v > 0 && map[x + u][y + v - 1] == 0) directions++;
-                    if (directions == 1) {
+                    if (x + u < mapWidth - 1 && map[x + u + 1][y + v] === 0) directions++;
+                    if (x + u > 0 && map[x + u - 1][y + v] === 0) directions++;
+                    if (y + v < mapHeight - 1 && map[x + u][y + v + 1] === 0) directions++;
+                    if (y + v > 0 && map[x + u][y + v - 1] === 0) directions++;
+                    if (directions === 1) {
                         invalid = true;
                     }
                 }
@@ -208,9 +208,9 @@ function generateMap() {
 
     for (let i = 1; i < mapWidth - 1; i++) {
         for (let j = 1; j < mapHeight - 1; j++) {
-            if (map[i][j] == 0 ||
-                abs(u - i) == 2 && abs(v - j) <= 2 ||
-                abs(u - i) <= 2 && abs(v - j) == 2) {
+            if (map[i][j] === 0 ||
+                abs(u - i) === 2 && abs(v - j) <= 2 ||
+                abs(u - i) <= 2 && abs(v - j) === 2) {
                 map[i][j] = PILL;
             }
         }
@@ -220,10 +220,10 @@ function generateMap() {
 
     for (let i = 1; i < mapWidth / 2; i += 12) {
         for (let j = 5; j < mapHeight / 2; j += 8) {
-            if (map[i][j] == PILL) map[i][j] = POWERUP;
-            if (map[i][mapHeight - j - 1] == PILL) map[i][mapHeight - j - 1] = POWERUP;
-            if (map[mapWidth - i - 1][j] == PILL) map[mapWidth - i - 1][j] = POWERUP;
-            if (map[mapWidth - i - 1][mapHeight - j - 1] == PILL) map[mapWidth - i - 1][mapHeight - j - 1] = POWERUP;
+            if (map[i][j] === PILL) map[i][j] = POWERUP;
+            if (map[i][mapHeight - j - 1] === PILL) map[i][mapHeight - j - 1] = POWERUP;
+            if (map[mapWidth - i - 1][j] === PILL) map[mapWidth - i - 1][j] = POWERUP;
+            if (map[mapWidth - i - 1][mapHeight - j - 1] === PILL) map[mapWidth - i - 1][mapHeight - j - 1] = POWERUP;
         }
     }
 
@@ -232,12 +232,12 @@ function generateMap() {
 
     for (let x = 0; x < mapWidth; x++) {
         for (let y = 0; y < mapHeight; y++) {
-            if (map[x][y] != 0) {
-                if (x < mapWidth - 1 && map[x + 1][y] % 16 == 0) map[x][y] = map[x][y] & ~EAST;
-                if (x > 0 && map[x - 1][y] % 16 == 0) map[x][y] = map[x][y] & ~WEST;
-                if (y < mapHeight - 1 && map[x][y + 1] % 16 == 0) map[x][y] = map[x][y] & ~SOUTH;
-                if (y > 0 && map[x][y - 1] % 16 == 0) map[x][y] = map[x][y] & ~NORTH;
-                if (map[x][y] == 0) map[x][y] = ISLAND;
+            if (map[x][y] !== 0) {
+                if (x < mapWidth - 1 && map[x + 1][y] % 16 === 0) map[x][y] = map[x][y] & ~EAST;
+                if (x > 0 && map[x - 1][y] % 16 === 0) map[x][y] = map[x][y] & ~WEST;
+                if (y < mapHeight - 1 && map[x][y + 1] % 16 === 0) map[x][y] = map[x][y] & ~SOUTH;
+                if (y > 0 && map[x][y - 1] % 16 === 0) map[x][y] = map[x][y] & ~NORTH;
+                if (map[x][y] === 0) map[x][y] = ISLAND;
             }
         }
     }
@@ -246,9 +246,9 @@ function generateMap() {
 
     for (let x = 1; x < mapWidth - 1; x++) {
         for (let y = 1; y < mapHeight - 1; y++) {
-            if (map[x][y] == PILL) {
-                if (map[x + 1][y] == PILL && map[x][y + 1] == PILL && map[x - 1][y] == PILL && map[x][y - 1] == PILL &&
-                    map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
+            if (map[x][y] === PILL) {
+                if (map[x + 1][y] === PILL && map[x][y + 1] === PILL && map[x - 1][y] === PILL && map[x][y - 1] === PILL &&
+                    map[x + 1][y + 1] === PILL && map[x - 1][y + 1] === PILL && map[x - 1][y + 1] === PILL && map[x - 1][y - 1] === PILL) {
                     map[x][y] = ISLAND;
                 }
             }
@@ -259,15 +259,15 @@ function generateMap() {
 
     for (let x = 1; x < mapWidth - 1; x++) {
         for (let y = 1; y < mapHeight - 1; y++) {
-            if (map[x][y] == PILL) {
-                if (map[x + 1][y] == ISLAND && map[x][y + 1] == PILL && map[x - 1][y] == ISLAND && map[x][y - 1] == PILL &&
-                    map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
+            if (map[x][y] === PILL) {
+                if (map[x + 1][y] === ISLAND && map[x][y + 1] === PILL && map[x - 1][y] === ISLAND && map[x][y - 1] === PILL &&
+                    map[x + 1][y + 1] === PILL && map[x - 1][y + 1] === PILL && map[x - 1][y + 1] === PILL && map[x - 1][y - 1] === PILL) {
                     map[x][y] = EAST | WEST;
                     map[x + 1][y] = WEST;
                     map[x - 1][y] = EAST;
                 }
-                if (map[x + 1][y] == PILL && map[x][y + 1] == ISLAND && map[x - 1][y] == PILL && map[x][y - 1] == ISLAND &&
-                    map[x + 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y + 1] == PILL && map[x - 1][y - 1] == PILL) {
+                if (map[x + 1][y] === PILL && map[x][y + 1] === ISLAND && map[x - 1][y] === PILL && map[x][y - 1] === ISLAND &&
+                    map[x + 1][y + 1] === PILL && map[x - 1][y + 1] === PILL && map[x - 1][y + 1] === PILL && map[x - 1][y - 1] === PILL) {
                     map[x][y] = NORTH | SOUTH;
                     map[x][y + 1] = NORTH;
                     map[x][y - 1] = SOUTH;
@@ -284,7 +284,8 @@ function generateMap() {
         direction: EAST,
         nextDirection: EAST,
         directionChangeBehaviour: null,
-        powerup: 0
+        powerup: 0,
+        path: []
     }
 }
 
@@ -298,7 +299,7 @@ function generateGhosts() {
         do {
             x = floor(random(1, mapWidth - 1));
             y = floor(random(1, mapHeight - 1));
-        } while (map[x][y] != PILL ||
+        } while (map[x][y] !== PILL ||
             abs(x - player.position.x) < 4 &&
             abs(y - player.position.y) < 4);
 
@@ -310,15 +311,16 @@ function generateGhosts() {
                 case 2: d = SOUTH; dx = 0; dy = 1; break;
                 case 3: d = WEST; dx = -1; dy = 0; break;
             }
-        } while (map[x + dx][y + dy] != PILL);
+        } while (map[x + dx][y + dy] !== PILL);
 
-        let t = floor(random(1, 4));
+        let t = floor(random(1, 5));
 
         let r, g, b;
         switch (t) {
             case 1: r = 0; g = 255; b = 255; break;
             case 2: r = 255; g = 128; b = 0; break;
             case 3: r = 255; g = 0; b = 255; break;
+            case 4: r = 255; g = 0; b = 0; break;
         }
 
         let img = createImage(whiteghost.width, whiteghost.height);
@@ -338,11 +340,12 @@ function generateGhosts() {
             position: createVector(x, y),
             target: createVector(x + dx, y + dy),
             progress: 0,
-            speed: 3,
+            speed: 2 + random(0, 2),
             direction: d,
             nextDirection: d,
             directionChangeBehaviour: t,
-            powerup: 0
+            powerup: 0,
+            path: []
         });
 
     }
@@ -403,7 +406,7 @@ function keyPressed() {  /* P5 DEFINED FUNCTION */
             mapHeight += 4;
             generateMap();
             generateGhosts();
-        } else if (keyCode == 32) {
+        } else if (keyCode === 32) {
             generateMap();
             generateGhosts();
         }
@@ -448,13 +451,13 @@ function inputs() {
 
     if (!keyIsDown(CONTROL)) {
         if (player.target.x > 0 && player.target.x < mapWidth - 1 && player.target.y > 0 && player.target.y < mapHeight - 1) {
-            if (keyIsDown(LEFT_ARROW) && (map[player.target.x - 1][player.target.y] == 0 || map[player.target.x - 1][player.target.y] == PILL)) {
+            if (keyIsDown(LEFT_ARROW) && (map[player.target.x - 1][player.target.y] === 0 || map[player.target.x - 1][player.target.y] === PILL)) {
                 player.nextDirection = WEST;
-            } else if (keyIsDown(RIGHT_ARROW) && (map[player.target.x + 1][player.target.y] == 0 || map[player.target.x + 1][player.target.y] == PILL)) {
+            } else if (keyIsDown(RIGHT_ARROW) && (map[player.target.x + 1][player.target.y] === 0 || map[player.target.x + 1][player.target.y] === PILL)) {
                 player.nextDirection = EAST;
-            } else if (keyIsDown(UP_ARROW) && (map[player.target.x][player.target.y - 1] == 0 || map[player.target.x][player.target.y - 1] == PILL)) {
+            } else if (keyIsDown(UP_ARROW) && (map[player.target.x][player.target.y - 1] === 0 || map[player.target.x][player.target.y - 1] === PILL)) {
                 player.nextDirection = NORTH;
-            } else if (keyIsDown(DOWN_ARROW) && (map[player.target.x][player.target.y + 1] == 0 || map[player.target.x][player.target.y + 1] == PILL)) {
+            } else if (keyIsDown(DOWN_ARROW) && (map[player.target.x][player.target.y + 1] === 0 || map[player.target.x][player.target.y + 1] === PILL)) {
                 player.nextDirection = SOUTH;
             }
         }
@@ -477,14 +480,14 @@ function processes() {
 
         entity.progress += entity.speed * (deltaTime / 1000);
 
-        if (entity == player && entity.progress >= 0.5) {
+        if (entity === player && entity.progress >= 0.5) {
 
-            if (map[entity.target.x][entity.target.y] == PILL) {
+            if (map[entity.target.x][entity.target.y] === PILL) {
                 pillsound.play();
                 map[entity.target.x][entity.target.y] = 0;
             }
 
-            if (map[entity.target.x][entity.target.y] == POWERUP) {
+            if (map[entity.target.x][entity.target.y] === POWERUP) {
                 map[entity.target.x][entity.target.y] = 0;
                 powerupsound.play();
                 player.powerup = 5;
@@ -512,16 +515,76 @@ function processes() {
                 let westClear = !solid(map[entity.target.x - 1][entity.target.y]) &&
                     (entity === player || !entityMap[entity.target.x - 1][entity.target.y]);
 
-                if (entity.directionChangeBehaviour != null && (entity.nextDirection == NORTH & !northClear ||
-                    entity.nextDirection == EAST & !eastClear ||
-                    entity.nextDirection == SOUTH & !southClear ||
-                    entity.nextDirection == WEST & !westClear)) {
+                if (entity.directionChangeBehaviour !== null && (entity.nextDirection === NORTH & !northClear ||
+                    entity.nextDirection === EAST & !eastClear ||
+                    entity.nextDirection === SOUTH & !southClear ||
+                    entity.nextDirection === WEST & !westClear)) {
                     directionChange = true;
                 }
 
-                if (entity.directionChangeBehaviour == 2 || entity.directionChangeBehaviour == 3) {
+                if (entity.directionChangeBehaviour === 2 || entity.directionChangeBehaviour === 3) {
                     let paths = (northClear ? 1 : 0) + (eastClear ? 1 : 0) + (southClear ? 1 : 0) + (westClear ? 1 : 0);
                     if (paths > 2) directionChange = true;
+                }
+
+                if (entity.directionChangeBehaviour === 4) {
+
+                    entity.path = [];
+                    let destination = createVector(player.target.x, player.target.y);
+
+                    let current = {
+                        x: entity.position.x,
+                        y: entity.position.y,
+                        h: abs(destination.x - start.x) + abs(destination.y - start.y),
+                        g: 0,
+                        from: null,
+                        processed: false
+                    };
+                    let nodes = [current];
+
+                    while (current.x !== destination.x && current.y !== destination.y) {
+
+                        let dx, dy;
+                        for (let d = 0; d < 4; d++) {
+                            switch (d) {
+                                case 0: dx = 1; dy = 0; break;
+                                case 1: dx = 0; dy = 1; break;
+                                case 2: dx = -1; dy = 0; break;
+                                case 3: dx = 0; dy = -1; break;
+                            }
+                            if (!solid(map[current.x + dx][current.y + dy])) {
+                                let newNode = {
+                                    x: current.y + dx,
+                                    y: current.y + dy,
+                                    h: abs(destination.x - current.x - dx) + abs(destination.y - current.y - dy),
+                                    g: current.g + 1,
+                                    from: current,
+                                    processed: false
+                                };
+                                let duplicate = false
+                                for (let node of nodes) {
+                                    if (node.x === newNode.x && node.y === newNode.y) {
+                                        if (node.processed && newNode.g < node.g) {
+                                            node.g = newNode.g;
+                                            node.from = current;
+                                        }
+                                        duplicate = true;
+                                        break;
+                                    }
+                                }
+                                if (!duplicate) {
+                                    nodes.push(newNode);
+                                }
+                            }
+                        }
+
+                        current.processed = true;
+
+
+
+                    }
+
+
                 }
 
                 if (directionChange && entity.directionChangeBehaviour !== null) {
@@ -547,27 +610,27 @@ function processes() {
                                 case 3: d = WEST; dx = -1; dy = 0; break;
                             }
 
-                            if (entity.directionChangeBehaviour == 3) {
+                            if (entity.directionChangeBehaviour === 3) {
                                 if (tries <= 15) {
                                     oneeighty =
-                                        d == NORTH && entity.nextDirection == SOUTH ||
-                                        d == EAST && entity.nextDirection == WEST ||
-                                        d == SOUTH && entity.nextDirection == NORTH ||
-                                        d == WEST && entity.nextDirection == EAST;
+                                        d === NORTH && entity.nextDirection === SOUTH ||
+                                        d === EAST && entity.nextDirection === WEST ||
+                                        d === SOUTH && entity.nextDirection === NORTH ||
+                                        d === WEST && entity.nextDirection === EAST;
                                 } else {
                                     oneeighty = false;
                                 }
                             }
 
-                        } while (oneeighty || !(map[entity.position.x + dx][entity.position.y + dy] == PILL ||
-                            map[entity.position.x + dx][entity.position.y + dy] == 0) || entityMap[entity.target.x + dx][entity.target.y + dy]);
+                        } while (oneeighty || !(map[entity.position.x + dx][entity.position.y + dy] === PILL ||
+                            map[entity.position.x + dx][entity.position.y + dy] === 0) || entityMap[entity.target.x + dx][entity.target.y + dy]);
 
                         entity.progress = 0;
                         entity.nextDirection = d;
                     }
                 }
 
-                if (entity.nextDirection == NORTH) {
+                if (entity.nextDirection === NORTH) {
                     if (northClear) {
                         entity.target.y--;
                         entity.direction = entity.nextDirection;
@@ -575,7 +638,7 @@ function processes() {
                         entity.progress = 1;
                         entity.nextDirection = entity.direction;
                     }
-                } else if (entity.nextDirection == EAST) {
+                } else if (entity.nextDirection === EAST) {
                     if (eastClear) {
                         entity.target.x++;
                         entity.direction = entity.nextDirection;
@@ -583,7 +646,7 @@ function processes() {
                         entity.progress = 1;
                         entity.nextDirection = entity.direction;
                     }
-                } else if (entity.nextDirection == SOUTH) {
+                } else if (entity.nextDirection === SOUTH) {
                     if (southClear) {
                         entity.target.y++;
                         entity.direction = entity.nextDirection;
@@ -591,7 +654,7 @@ function processes() {
                         entity.progress = 1;
                         entity.nextDirection = entity.direction;
                     }
-                } else if (entity.nextDirection == WEST) {
+                } else if (entity.nextDirection === WEST) {
                     if (westClear) {
                         entity.target.x--;
                         entity.direction = entity.nextDirection;
@@ -629,7 +692,7 @@ function processes() {
         if (entityMap[player.target.x][player.target.y]) {
             let g = 0;
             while (g < ghosts.length) {
-                if (ghosts[g].target.y == player.target.y && ghosts[g].target.y == player.target.y) {
+                if (ghosts[g].target.y === player.target.y && ghosts[g].target.y === player.target.y) {
                     if (player.powerup > 0) {
                         ghosts.splice(g, 1);
                         capturesound.play();
@@ -658,7 +721,7 @@ function outputs() {
     for (let i = 0; i < mapWidth; i++) {
         for (let j = 0; j < mapHeight; j++) {
 
-            if (map[i][j] == ISLAND) {
+            if (map[i][j] === ISLAND) {
 
                 image(walltiles[0], i * size + xOffset, j * size + yOffset, size, size);
 
@@ -666,26 +729,26 @@ function outputs() {
 
                 image(walltiles[map[i][j]], i * size + xOffset, j * size + yOffset, size, size);
 
-            } else if (map[i][j] == PILL) {
+            } else if (map[i][j] === PILL) {
 
                 image(pilltile, i * size + xOffset, j * size + yOffset, size, size);
 
-            } else if (map[i][j] == POWERUP) {
+            } else if (map[i][j] === POWERUP) {
 
                 image(poweruptile, i * size + xOffset, j * size + yOffset, size, size);
 
-            } else if (map[i][j] == BASE) {
+            } else if (map[i][j] === BASE) {
 
                 let b = null;
-                if (map[i - 1][j] != BASE && map[i][j - 1] != BASE) b = 0;
-                else if (map[i + 1][j] != BASE && map[i][j - 1] != BASE) b = 2;
-                else if (map[i + 1][j] != BASE && map[i][j + 1] != BASE) b = 4;
-                else if (map[i - 1][j] != BASE && map[i][j + 1] != BASE) b = 6;
-                else if (map[i][j - 1] != BASE) b = 1;
-                else if (map[i + 1][j] != BASE) b = 3;
-                else if (map[i][j + 1] != BASE) b = 5;
-                else if (map[i - 1][j] != BASE) b = 7;
-                if (b != null) {
+                if (map[i - 1][j] !== BASE && map[i][j - 1] !== BASE) b = 0;
+                else if (map[i + 1][j] !== BASE && map[i][j - 1] !== BASE) b = 2;
+                else if (map[i + 1][j] !== BASE && map[i][j + 1] !== BASE) b = 4;
+                else if (map[i - 1][j] !== BASE && map[i][j + 1] !== BASE) b = 6;
+                else if (map[i][j - 1] !== BASE) b = 1;
+                else if (map[i + 1][j] !== BASE) b = 3;
+                else if (map[i][j + 1] !== BASE) b = 5;
+                else if (map[i - 1][j] !== BASE) b = 7;
+                if (b !== null) {
                     image(basetiles[b], i * size + xOffset, j * size + yOffset, size, size);
                 }
 
@@ -702,14 +765,14 @@ function outputs() {
         push();
         imageMode(CENTER);
         translate((pacmanPosition.x + 0.5) * size + xOffset, (pacmanPosition.y + 0.5) * size + yOffset);
-        if (player.direction == NORTH) {
+        if (player.direction === NORTH) {
             rotate(HALF_PI);
-        } else if (player.direction == EAST) {
+        } else if (player.direction === EAST) {
             rotate(PI);
-        } else if (player.direction == SOUTH) {
+        } else if (player.direction === SOUTH) {
             rotate(PI + HALF_PI);
         }
-        if (player.powerup > 2 || player.powerup > 0 && floor(player.powerup * 6) % 2 == 0) {
+        if (player.powerup > 2 || player.powerup > 0 && floor(player.powerup * 6) % 2 === 0) {
             image(poweredpacmans[pacmanFrame], 0, 0, size, size);
         } else {
             image(pacmans[pacmanFrame], 0, 0, size, size);
