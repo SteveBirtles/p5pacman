@@ -36,6 +36,7 @@ let player;
 let ghosts = [];
 
 let framerateStack = [];
+let showPaths = false;
 
 function preload() {  /* P5 DEFINED FUNCTION */
 
@@ -313,7 +314,7 @@ function generateGhosts() {
       }
     } while (map[x + dx][y + dy] !== PILL);
 
-    let t = (z === 0) ? 4 : floor(random(1, 4));
+    let t = floor(random(1, 6));
 
     let r, g, b;
     switch (t) {
@@ -321,6 +322,7 @@ function generateGhosts() {
       case 2: r = 255; g = 128; b = 0; break;
       case 3: r = 255; g = 0; b = 255; break;
       case 4: r = 255; g = 0; b = 0; break;
+      case 5: r = 128; g = 128; b = 255; break;
     }
 
     let img = createImage(whiteghost.width, whiteghost.height);
@@ -411,6 +413,8 @@ function keyPressed() {  /* P5 DEFINED FUNCTION */
       generateGhosts();
     }
   }
+
+  if (KeyCode === 80) showPaths = !showPaths;
 
 }
 
@@ -515,99 +519,146 @@ function processes() {
         let westClear = !solid(map[entity.target.x - 1][entity.target.y]) &&
           (entity === player || !entityMap[entity.target.x - 1][entity.target.y]);
 
-        if (entity.directionChangeBehaviour !== null && (entity.nextDirection === NORTH & !northClear ||
-          entity.nextDirection === EAST & !eastClear ||
-          entity.nextDirection === SOUTH & !southClear ||
-          entity.nextDirection === WEST & !westClear)) {
+        if (entity.directionChangeBehaviour !== null &&
+          (entity.nextDirection === NORTH & !northClear ||
+            entity.nextDirection === EAST & !eastClear ||
+            entity.nextDirection === SOUTH & !southClear ||
+            entity.nextDirection === WEST & !westClear)) {
           directionChange = true;
         }
 
-        if (entity.directionChangeBehaviour === 2 || entity.directionChangeBehaviour === 3 || entity.directionChangeBehaviour === 4 && player === null) {
+        if (entity.directionChangeBehaviour === 2 || entity.directionChangeBehaviour === 3) {
           let paths = (northClear ? 1 : 0) + (eastClear ? 1 : 0) + (southClear ? 1 : 0) + (westClear ? 1 : 0);
           if (paths > 2) directionChange = true;
         }
 
-        if (player !== null && entity.directionChangeBehaviour === 4) {
+        if (entity.directionChangeBehaviour === 4) {
 
-          let destination = createVector(player.target.x, player.target.y);
+          if (player === null) {
 
-          let current = {
-            x: entity.position.x,
-            y: entity.position.y,
-            h: abs(destination.x - entity.position.x) + abs(destination.y - entity.position.y),
-            g: 0,
-            from: null,
-            processed: false
-          };
-          entity.path = [current];
+            entity.directionChangeBehaviour = 3;
+            entity.path = [];
 
-          let iterations = 0;
+          } else {
 
-          while (!(current.x === destination.x && current.y === destination.y) && iterations < 100) {
+            let destination = createVector(player.target.x, player.target.y);
 
-            iterations++;
+            /*
+             if (entity.directionChangeBehaviour === 4) {
+            destination = createVector(player.target.x, player.target.y);
+          } else {
 
-            let dx, dy;
-            for (let d = 0; d < 4; d++) {
-              switch (d) {
-                case 0: dx = 1; dy = 0; break;
-                case 1: dx = 0; dy = 1; break;
-                case 2: dx = -1; dy = 0; break;
-                case 3: dx = 0; dy = -1; break;
-              }
-
-              if (current.x + dx > 0 && current.x + dx < mapWidth - 1 &&
-                current.y + dy > 0 && current.y + dy < mapHeight - 1 &&
-                !solid(map[current.x + dx][current.y + dy])) {
-                let newNode = {
-                  x: current.y + dx,
-                  y: current.y + dy,
-                  h: abs(destination.x - (current.x + dx)) + abs(destination.y - (current.y + dy)),
-                  g: current.g + 1,
-                  from: current,
-                  processed: false
-                };
-
-                let duplicate = false
-                for (let node of entity.path) {
-                  if (node.x === newNode.x && node.y === newNode.y) {
-                    if (!node.processed && newNode.g < node.g) {
-                      node.g = newNode.g;
-                      node.from = current;
-                    }
-                    duplicate = true;
-                    break;
-                  }
+            let powerups = [];
+            for (let x = 0; x < mapWidth; x++) {
+              for (let y = 0; y < mapHeight; y++) {
+                if (map[x][y] === POWERUP) {
+                  powerups.push({ x, y });
                 }
-                if (!duplicate) {
-                  entity.path.push(newNode);                  
-                }
-
               }
             }
-
-            current.processed = true;
-
-            let best = mapWidth + mapHeight;
-            let last = current;
-
-            for (let node of entity.path) {
-              if (node.processed) continue;
-              if (node.h + node.g < best) {
-                best = node.h + node.g;
-                current = node;
-              }
-            }
-
-            if (current === last) {
-              //console.log("No better nodes found");
-              break;
+            if (powerups.length === 0) {
+              entity.directionChangeBehaviour = 1;
+            } else {
+              let r = floor(random(0, powerups.length));
+              destination = createVector(powerups[r].x, powerups[r].y);
             }
 
           }
+          */
 
-          //console.log("startx", current.x, "starty", current.y, "endx", destination.x, "endy", destination.y, "iterations", iterations, "nodes", nodes.length);
+            let current = {
+              x: entity.position.x,
+              y: entity.position.y,
+              h: abs(destination.x - entity.position.x) + abs(destination.y - entity.position.y),
+              g: 0,
+              from: null,
+              processed: false,
+              final: true
+            };
+            entity.path = [current];
 
+            let maxPathLength = mapWidth * mapHeight;
+
+            while (!(current.x === destination.x && current.y === destination.y)
+              && entity.path.length < maxPathLength) {
+
+              let dx, dy;
+              for (let d = 0; d < 4; d++) {
+                switch (d) {
+                  case 0: dx = 1; dy = 0; break;
+                  case 1: dx = 0; dy = 1; break;
+                  case 2: dx = -1; dy = 0; break;
+                  case 3: dx = 0; dy = -1; break;
+                }
+
+                if (current.x + dx > 0 && current.x + dx < mapWidth - 1 &&
+                  current.y + dy > 0 && current.y + dy < mapHeight - 1 &&
+                  !solid(map[current.x + dx][current.y + dy])) {
+
+                  let newNode = {
+                    x: current.x + dx,
+                    y: current.y + dy,
+                    h: abs(destination.x - (current.x + dx)) + abs(destination.y - (current.y + dy)),
+                    g: current.g + 1,
+                    from: current,
+                    processed: false,
+                    final: false
+                  };
+
+                  let duplicate = false
+                  for (let node of entity.path) {
+                    if (node.x === newNode.x && node.y === newNode.y) {
+                      if (!node.processed && newNode.g < node.g) {
+                        node.g = newNode.g;
+                        node.from = current;
+                      }
+                      duplicate = true;
+                      break;
+                    }
+                  }
+
+                  if (!duplicate) {
+                    entity.path.push(newNode);
+                  }
+
+                }
+
+              }
+
+              current.processed = true;
+
+              let best = mapWidth + mapHeight;
+              let last = current;
+
+              for (let node of entity.path) {
+                if (node.processed) continue;
+                if (node.h + node.g < best) {
+                  best = node.h + node.g;
+                  current = node;
+                }
+              }
+
+              if (current === last) {
+                break;
+              }
+
+            }
+
+            current.final = true;
+            if (entity.path.length > 1) {
+              while (current.from.from !== null) {
+                current = current.from;
+                current.final = true;
+              }
+            }
+
+            entity.nextDirection = null;
+            if (current.x < entity.position.x) entity.nextDirection = WEST;
+            else if (current.x > entity.position.x) entity.nextDirection = EAST;
+            else if (current.y < entity.position.y) entity.nextDirection = NORTH;
+            else if (current.y > entity.position.y) entity.nextDirection = SOUTH;
+
+          }
         }
 
         if (directionChange && entity.directionChangeBehaviour !== null) {
@@ -827,15 +878,24 @@ function outputs() {
     ellipse(-size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
     ellipse(size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
 
-    textAlign(CENTER, CENTER);
-    textSize(12);
-    fill(255, 255, 255);
-    if (ghost.path !== null) {
-      for (let node of ghost.path) {
-        text(JSON.stringify({x:node.x, y:node.y, h:node.h, g:node.g}), (node.x - ghost.position.x) * size, (node.y - ghost.position.y) * size);
+    if (showPaths) {
+      textAlign(CENTER, CENTER);
+      textSize(14);
+      if (ghost.path !== null) {
+        let n = 0;
+        for (let node of ghost.path) {
+          n++;
+          if (node.final) {
+            fill(128, 255, 128, 128);
+          } else {
+            fill(255, 0, 0, 128);
+          }
+          circle((node.x - ghostPosition.x) * size, (node.y - ghostPosition.y) * size, size);
+          fill(0, 0, 0, 255);
+          text(n, (node.x - ghostPosition.x) * size, (node.y - ghostPosition.y) * size);
+        }
       }
     }
-
 
     pop();
 
