@@ -287,7 +287,8 @@ function generateMap() {
     directionChangeBehaviour: null,
     powerup: 0,
     path: [],
-    destination: null
+    destination: null,
+    stuck: 0
   }
 }
 
@@ -349,7 +350,8 @@ function generateGhosts() {
       directionChangeBehaviour: t,
       powerup: 0,
       path: [],
-      destination: null
+      destination: null,
+      stuck: 0
     });
 
   }
@@ -501,14 +503,25 @@ function processes() {
 
     }
 
+    let directionChange = false;
+
     if (entity !== player && (entity.directionChangeBehaviour === 5 || entity.directionChangeBehaviour === 6) && entity.destination !== null) {
 
-      if (entity.target.x === entity.destination.x && entity.target.y === entity.destination.y) {
+      if (entity.stuck > 30) {
+        
+        entity.destination = null;        
+        entity.stuck = 0;
+        directionChange = true;
+
+      } else if (entity.target.x === entity.destination.x && entity.target.y === entity.destination.y) {
+        
         if (entity.directionChangeBehaviour === 6) {
           entity.directionChangeBehaviour = floor(random(1, 6));
           entity.speed /= 2;
         }
         entity.destination = null;
+        directionChange = true;
+
       }
 
     }
@@ -518,9 +531,7 @@ function processes() {
       entity.position.x = entity.target.x;
       entity.position.y = entity.target.y;
 
-      if (entity.target.x > 0 && entity.target.x < mapWidth - 1 && entity.target.y > 0 && entity.target.y < mapHeight - 1) {
-
-        let directionChange = false;
+      if (entity.target.x > 0 && entity.target.x < mapWidth - 1 && entity.target.y > 0 && entity.target.y < mapHeight - 1) {        
 
         const solid = (x) => !(x === 0 || x === PILL || x === POWERUP || x === BASE && entity !== player);
 
@@ -628,7 +639,7 @@ function processes() {
             };
             entity.path = [current];
 
-            let maxPathLength = mapWidth * mapHeight;
+            let maxPathLength = 1000;
 
             while (!(current.x === entity.destination.x && current.y === entity.destination.y)
               && entity.path.length < maxPathLength) {
@@ -645,7 +656,7 @@ function processes() {
                 if (current.x + dx > 0 && current.x + dx < mapWidth - 1 &&
                   current.y + dy > 0 && current.y + dy < mapHeight - 1 &&
                   !solid(map[current.x + dx][current.y + dy])
-                  && (!entityMap[current.x + dx][current.y + dy] ||
+                  && (!(entityMap[current.x + dx][current.y + dy] && entity.directionChangeBehaviour === 4) ||
                     current.x + dx === entity.destination.x && current.y + dy === entity.destination.y)) {
 
                   let newNode = {
@@ -717,33 +728,41 @@ function processes() {
 
         if (entity.nextDirection === NORTH) {
           if (northClear) {
+            entity.stuck = 0;
             entity.target.y--;
             entity.direction = entity.nextDirection;
           } else {
+            entity.stuck++;
             entity.progress = 1;
             entity.nextDirection = entity.direction;
           }
         } else if (entity.nextDirection === EAST) {
           if (eastClear) {
+            entity.stuck = 0;
             entity.target.x++;
             entity.direction = entity.nextDirection;
           } else {
+            entity.stuck++;
             entity.progress = 1;
             entity.nextDirection = entity.direction;
           }
         } else if (entity.nextDirection === SOUTH) {
           if (southClear) {
+            entity.stuck = 0;
             entity.target.y++;
             entity.direction = entity.nextDirection;
           } else {
+            entity.stuck++;
             entity.progress = 1;
             entity.nextDirection = entity.direction;
           }
         } else if (entity.nextDirection === WEST) {
           if (westClear) {
+            entity.stuck = 0;
             entity.target.x--;
             entity.direction = entity.nextDirection;
           } else {
+            entity.stuck++;
             entity.progress = 1;
             entity.nextDirection = entity.direction;
           }
