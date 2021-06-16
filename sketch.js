@@ -34,9 +34,23 @@ let pillsound, explosionsound, powerupsound, capturesound;
 
 let player;
 let ghosts = [];
+let score;
+
+const PLAY = 1;
+const GAMEOVER = 2;
+
+let mode = PLAY;
 
 let framerateStack = [];
-let showPaths = false;
+
+let toggles = {
+    inputs: true,
+    processes: true,
+    outputs: true,
+    fps: false,
+    clear: true,
+    paths: false
+}
 
 function preload() {  /* P5 DEFINED FUNCTION */
 
@@ -74,13 +88,9 @@ function generateMap() {
         let final = history === null;
 
         if (history === null) {
-            history = [];
+            history = new Array(mapWidth);
             for (let i = 0; i < mapWidth; i++) {
-                row = [];
-                for (let j = 0; j < mapHeight; j++) {
-                    row.push(false);
-                }
-                history.push(row);
+                history[i] = new Array(mapHeight).fill(false);
             }
         }
 
@@ -112,13 +122,9 @@ function generateMap() {
 
     // CLEAR MAP
 
-    map = [];
+    map = new Array(mapWidth);
     for (let i = 0; i < mapWidth; i++) {
-        row = [];
-        for (let j = 0; j < mapHeight; j++) {
-            row.push(0);
-        }
-        map.push(row);
+        map[i] = new Array(mapHeight).fill(0);
     }
 
     // MAP EDGES
@@ -228,7 +234,6 @@ function generateMap() {
         }
     }
 
-
     // EDGE FIXES
 
     for (let x = 0; x < mapWidth; x++) {
@@ -290,6 +295,9 @@ function generateMap() {
         destination: null,
         stuck: 0
     }
+    
+    score = 0;
+
 }
 
 function recolour(image, rgb) {
@@ -396,6 +404,12 @@ function setup() {  /* P5 DEFINED FUNCTION */
 
 function keyPressed() {  /* P5 DEFINED FUNCTION */
 
+    if (keyCode == 32 && mode == GAMEOVER) {
+        generateMap();
+        generateGhosts();
+        mode = PLAY;
+    }
+
     if (keyIsDown(CONTROL)) {
         if (keyCode === LEFT_ARROW) {
             mapWidth -= 4;
@@ -421,7 +435,19 @@ function keyPressed() {  /* P5 DEFINED FUNCTION */
         }
     }
 
-    if (keyCode === 80) showPaths = !showPaths;
+    if (keyCode === 49) { // 1
+        toggles.inputs = !toggles.inputs;
+    } else if (keyCode === 50) { // 2
+        toggles.processes = !toggles.processes;
+    } else if (keyCode === 51) { // 3
+        toggles.outputs = !toggles.outputs;
+    } else if (keyCode === 52) { // 4
+        toggles.fps = !toggles.fps;
+    } else if (keyCode === 53) { // 5
+        toggles.clear = !toggles.clear;
+    } else if (keyCode === 54) { // 6
+        toggles.paths = !toggles.paths;
+    }
 
 }
 
@@ -437,22 +463,45 @@ function draw() {  /* P5 DEFINED FUNCTION */
 
     /* INPUTS */
 
-    inputs();
+    if (mode === PLAY && toggles.inputs) inputs();
 
     /* PROCESSES */
 
-    processes();
+    if (mode === PLAY && toggles.processes) processes();
 
     /* OUTPUTS */
 
-    outputs();
+    if (toggles.outputs) outputs();
 
     /* POST-FRAME */
 
-    textAlign(LEFT, TOP);
-    textSize(18);
-    fill(255, 255, 255);
-    text(floor(averageFPS) + " FPS", 10, 10);
+    textAlign(CENTER, TOP);
+    textSize(24);
+    fill(255, 255, 0);
+    text("SCORE: " + score, windowWidth / 2, 10);
+
+    if (mode === GAMEOVER) {
+        textAlign(CENTER, CENTER);
+        textSize(60);
+        fill(255, 0, 0);
+        text("GAME OVER", windowWidth / 2, windowHeight / 2);
+        textSize(32);
+        text("Press Space to try again", windowWidth / 2, windowHeight / 2 + 40);
+    }
+
+    if (toggles.fps) {
+        textAlign(LEFT, TOP);
+        textSize(24);
+        fill(0, 255, 0);
+        text(floor(averageFPS) + " FPS", 10, 10);
+    }
+
+    if (!toggles.inputs || !toggles.processes || !toggles.outputs || !toggles.clear || toggles.paths || toggles.fps) {
+        textAlign(CENTER, BOTTOM);
+        textSize(18);
+        fill(255, 255, 255);
+        text(JSON.stringify(toggles), windowWidth / 2, windowHeight - 10);
+    }
 
 }
 
@@ -478,13 +527,9 @@ function inputs() {
 
 function processes() {
 
-    let entityMap = [];
+    let entityMap = new Array(mapWidth);
     for (let i = 0; i < mapWidth; i++) {
-        row = [];
-        for (let j = 0; j < mapHeight; j++) {
-            row.push(0);
-        }
-        entityMap.push(row);
+        entityMap[i] = new Array(mapHeight).fill(0);
     }
 
     const processEntity = (entity) => {
@@ -495,6 +540,7 @@ function processes() {
 
             if (map[entity.target.x][entity.target.y] === PILL) {
                 pillsound.play();
+                score++;
                 map[entity.target.x][entity.target.y] = 0;
             }
 
@@ -731,7 +777,6 @@ function processes() {
                         else if (current.y < entity.position.y) entity.nextDirection = NORTH;
                         else if (current.y > entity.position.y) entity.nextDirection = SOUTH;
 
-
                     }
                 }
 
@@ -813,6 +858,7 @@ function processes() {
                     } else {
                         player = null;
                         explosionsound.play();
+                        mode = GAMEOVER;
                     }
                     break;
                 }
@@ -829,7 +875,9 @@ function outputs() {
     const xOffset = windowWidth / 2 - (mapWidth / 2) * size;
     const yOffset = windowHeight / 2 - ((mapHeight - 1) / 2) * size;
 
-    background(palette.background.r, palette.background.g, palette.background.b);
+    if (toggles.clear) {
+        background(palette.background.r, palette.background.g, palette.background.b);
+    }
 
     for (let i = 0; i < mapWidth; i++) {
         for (let j = 0; j < mapHeight; j++) {
@@ -923,7 +971,7 @@ function outputs() {
             ellipse(size / 5 + ghostEyes.x, -size / 8 + ghostEyes.y, size / 6, size / 4);
         }
 
-        if (showPaths) {
+        if (toggles.paths) {
             textAlign(CENTER, CENTER);
             textSize(14);
             if (ghost.path !== null) {
