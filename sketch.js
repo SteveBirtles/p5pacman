@@ -1,4 +1,5 @@
-"option strict";
+"use strict";
+p5.disableFriendlyErrors = true;
 
 const NORTH = 1;
 const EAST = 2;
@@ -14,7 +15,7 @@ let mapHeight = 23;
 let map;
 
 let pilltile;
-let poweruptill;
+let poweruptile;
 let walltiles = [];
 let basetiles = [];
 let pacmans = [];
@@ -387,7 +388,6 @@ function windowResized() {  /* P5 DEFINED FUNCTION */
 
 function setup() {  /* P5 DEFINED FUNCTION */
 
-    p5.disableFriendlyErrors = true;
     createCanvas(windowWidth, windowHeight, P2D);
     frameRate(60);
 
