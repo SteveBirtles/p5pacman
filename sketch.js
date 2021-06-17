@@ -22,7 +22,7 @@ let pacmans = [];
 let poweredpacmans = [];
 let whiteghost;
 
-let palette = {
+const palette = {
     background: { r: 0, g: 0, b: 64 },
     walls: { r: 0, g: 128, b: 0 },
     pills: { r: 0, g: 128, b: 255 },
@@ -573,7 +573,7 @@ function processes() {
 
                 }
                 entity.destination = null;
-                entity.progress = 1;
+                entity.progress = 0;
                 entity.path = [];
                 directionChange = true;
 
@@ -746,7 +746,7 @@ function processes() {
 
                             current.processed = true;
 
-                            let best = mapWidth + mapHeight;
+                            let best = mapWidth * mapHeight;
                             let last = current;
 
                             for (let node of entity.path) {
